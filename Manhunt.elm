@@ -90,7 +90,16 @@ performAction model =
                 Just maybeLocationData ->
                     case maybeLocationData of
                         Just ( ( resource, action ), amount ) ->
-                            Just (Just ( ( resource, action ), amount - 1 ))
+                            let
+                                newAmount : Int
+                                newAmount =
+                                    amount - 1
+                            in
+                            if newAmount == 0 then
+                                Just Nothing
+
+                            else
+                                Just (Just ( ( resource, action ), newAmount ))
 
                         Nothing ->
                             maybeMaybeLocationData
