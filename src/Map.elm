@@ -152,7 +152,7 @@ findSafeInList id list =
 
 
 generateLocationData : Int -> LandscapeId -> Maybe LocationData
-generateLocationData randomNumber landscapeId =
+generateLocationData seed landscapeId =
     let
         landscapeValue : LandscapeResources
         landscapeValue =
@@ -161,7 +161,7 @@ generateLocationData randomNumber landscapeId =
 
         randomLandscapeResourceTypeId : Int
         randomLandscapeResourceTypeId =
-            step (Random.int 0 (List.length landscapeValue - 1)) (initialSeed randomNumber) |> Tuple.first
+            step (Random.int 0 (List.length landscapeValue - 1)) (initialSeed seed) |> Tuple.first
 
         landscapeRandomResource : ( Action, ResourceDict Resource )
         landscapeRandomResource =
@@ -177,7 +177,7 @@ generateLocationData randomNumber landscapeId =
 
         resourceId : Int
         resourceId =
-            step (Random.int 0 (Dict.size landscapeResources - 1)) (initialSeed randomNumber)
+            step (Random.int 0 (Dict.size landscapeResources - 1)) (initialSeed seed)
                 |> Tuple.first
 
         resource : Resource
@@ -189,7 +189,7 @@ generateLocationData randomNumber landscapeId =
 
         amount : Amount
         amount =
-            Tuple.first (step (Random.int 0 maxAmount) (initialSeed randomNumber))
+            Tuple.first (step (Random.int 0 maxAmount) (initialSeed seed))
     in
     if amount > 0 then
         Just ( ( resource, landscapeAction ), amount )

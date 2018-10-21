@@ -34,7 +34,7 @@ type Direction
 type Msg
     = Move Direction
     | Perform Action
-    | UpdateLocationData Int
+    | RefreshLocation Int
 
 
 type alias PlayerCoordinate =
@@ -56,18 +56,49 @@ update msg model =
     case msg of
         Move direction ->
             ( { model | playerPosition = updatePlayerPosition model.playerPosition direction }
-            , Random.generate UpdateLocationData (Random.int 1 6000)
+            , Random.generate RefreshLocation (Random.int 1 6000)
             )
 
-        UpdateLocationData randomNumber ->
-            ( { model | locationsData = updateLocationData randomNumber model }
+        RefreshLocation randomNumber ->
+            ( { model | locationsData = refreshLocation randomNumber model }
             , Cmd.none
             )
 
         Perform action ->
-            case action of
-                _ ->
-                    ( model, Cmd.none )
+            ( { model | locationsData = performAction model }, Cmd.none )
+
+
+performAction : Model -> LocationsData
+performAction model =
+    let
+        position : PlayerCoordinate
+        position =
+            ( model.playerPosition.lat, model.playerPosition.lon )
+
+        locationData : LocationData
+        locationData =
+            case findSafeInDict position model.locationsData of
+                Just data ->
+                    data
+
+                Nothing ->
+                    Debug.todo "Shouldn't be possible perform action if no data"
+
+        subtract : Maybe (Maybe LocationData) -> Maybe (Maybe LocationData)
+        subtract maybeMaybeLocationData =
+            case maybeMaybeLocationData of
+                Just maybeLocationData ->
+                    case maybeLocationData of
+                        Just ( ( resource, action ), amount ) ->
+                            Just (Just ( ( resource, action ), amount - 1 ))
+
+                        Nothing ->
+                            maybeMaybeLocationData
+
+                Nothing ->
+                    maybeMaybeLocationData
+    in
+    Dict.update position subtract model.locationsData
 
 
 updatePlayerPosition : PlayerPosition -> Direction -> PlayerPosition
@@ -86,8 +117,8 @@ updatePlayerPosition playerPosition direction =
             { playerPosition | lat = playerPosition.lat - 1 }
 
 
-updateLocationData : Int -> Model -> LocationsData
-updateLocationData randomNumber model =
+refreshLocation : Int -> Model -> LocationsData
+refreshLocation seed model =
     let
         position : PlayerCoordinate
         position =
@@ -99,12 +130,16 @@ updateLocationData randomNumber model =
     in
     case locationData of
         Just data ->
+            {-
+               There should be delay between the updates
+               If location data were not generated at first we should regenerate after X time
+            -}
             Debug.log "location data already exists" model.locationsData
 
         Nothing ->
             case getLandscape position of
                 Just landscape ->
-                    Dict.insert position (generateLocationData randomNumber landscape) model.locationsData
+                    Dict.insert position (generateLocationData seed landscape) model.locationsData
 
                 Nothing ->
                     model.locationsData
@@ -175,7 +210,7 @@ viewMoveControls =
 main : Program () Model Msg
 main =
     Browser.element
-        { init = \flags -> ( initialModel, Random.generate UpdateLocationData (Random.int 1 6000) )
+        { init = \flags -> ( initialModel, Random.generate RefreshLocation (Random.int 1 6000) )
         , subscriptions = always Sub.none
         , view = view
         , update = update
