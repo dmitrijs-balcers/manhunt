@@ -15,7 +15,7 @@ type alias PlayerPosition =
 
 
 type alias LocationsData =
-    Dict ( Int, Int ) (Maybe LocationData)
+    Dict PlayerCoordinate (Maybe LocationData)
 
 
 type alias Model =
