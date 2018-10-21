@@ -62,10 +62,10 @@ type alias LocationData =
 woodResources : ResourceDict Resource
 woodResources =
     Dict.fromList
-        [ ( 0, ( "Oak", 0.25, 10 ) )
+        [ ( 0, ( "Oak", 0.1, 10 ) )
         , ( 1, ( "Elm", 0.25, 10 ) )
-        , ( 2, ( "Birch", 0.25, 10 ) )
-        , ( 3, ( "Willow", 0.25, 10 ) )
+        , ( 2, ( "Birch", 0.5, 10 ) )
+        , ( 3, ( "Willow", 0.3, 10 ) )
         ]
 
 
@@ -190,12 +190,20 @@ generateLocationData seed landscapeId =
         amount : Amount
         amount =
             Tuple.first (step (Random.int 0 maxAmount) (initialSeed seed))
+
+        luck : Float
+        luck =
+            Tuple.first (step (Random.float 0 1) (initialSeed seed))
+
+        didFind : Bool
+        didFind =
+            luck > chanceToFind
     in
-    if amount > 0 then
+    if amount > 0 && didFind then
         Just ( ( resource, landscapeAction ), amount )
 
     else
-        Nothing
+        Debug.log ("Didn't find " ++ Debug.toString resource ++ "with amount#" ++ String.fromInt amount ++ " and luck#" ++ String.fromFloat luck) Nothing
 
 
 stringifyLocationData : LocationData -> String
