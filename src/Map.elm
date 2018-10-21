@@ -44,7 +44,7 @@ type alias Rarity =
 
 
 type alias MaxAmount =
-    Int
+    Amount
 
 
 type alias Resource =
@@ -151,7 +151,7 @@ findSafeInList id list =
             Debug.todo ("Didn't find " ++ String.fromInt id ++ " in " ++ Debug.toString list)
 
 
-generateLocationData : Int -> LandscapeId -> LocationData
+generateLocationData : Int -> LandscapeId -> Maybe LocationData
 generateLocationData randomNumber landscapeId =
     let
         landscapeValue : LandscapeResources
@@ -180,11 +180,22 @@ generateLocationData randomNumber landscapeId =
             step (Random.int 0 (Dict.size landscapeResources - 1)) (initialSeed randomNumber)
                 |> Tuple.first
 
+        resource : Resource
+        resource =
+            findSafeInDict resourceId landscapeResources
+
+        ( resourceName, chanceToFind, maxAmount ) =
+            resource
+
         amount : Amount
         amount =
-            randomNumber
+            Tuple.first (step (Random.int 0 maxAmount) (initialSeed randomNumber))
     in
-    ( ( findSafeInDict resourceId landscapeResources, landscapeAction ), amount )
+    if amount > 0 then
+        Just ( ( resource, landscapeAction ), amount )
+
+    else
+        Nothing
 
 
 stringifyLocationData : LocationData -> String

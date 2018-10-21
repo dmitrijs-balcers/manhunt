@@ -5,18 +5,7 @@ import Browser exposing (sandbox)
 import Dict exposing (Dict)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
-import Map
-    exposing
-        ( Action
-        , LocationData
-        , generateLocationData
-        , getLandscape
-        , landscapeToString
-        , stringifyLocationData
-        , viewLocation
-        , viewLocationAction
-        , viewMap
-        )
+import Map exposing (Action, LocationData, generateLocationData, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
 import Random
 import Result
 
@@ -26,7 +15,7 @@ type alias PlayerPosition =
 
 
 type alias LocationsData =
-    Dict ( Int, Int ) LocationData
+    Dict ( Int, Int ) (Maybe LocationData)
 
 
 type alias Model =
@@ -46,6 +35,10 @@ type Msg
     = Move Direction
     | Perform Action
     | UpdateLocationData Int
+
+
+type alias PlayerCoordinate =
+    ( Int, Int )
 
 
 initialModel =
@@ -96,12 +89,17 @@ updatePlayerPosition playerPosition direction =
 updateLocationData : Int -> Model -> LocationsData
 updateLocationData randomNumber model =
     let
+        position : PlayerCoordinate
         position =
             ( model.playerPosition.lat, model.playerPosition.lon )
+
+        locationData : Maybe (Maybe LocationData)
+        locationData =
+            Dict.get position model.locationsData
     in
-    case Dict.get position model.locationsData of
+    case locationData of
         Just data ->
-            model.locationsData
+            Debug.log "location data already exists" model.locationsData
 
         Nothing ->
             case getLandscape position of
@@ -128,20 +126,40 @@ viewLocationResource data =
 
 view : Model -> Html Msg
 view model =
-    let
-        playerCoordinate =
-            ( model.playerPosition.lat, model.playerPosition.lon )
+    if Dict.size model.locationsData == 0 then
+        text ""
 
-        locationsData =
-            model.locationsData
-    in
-    div []
-        [ viewLocation playerCoordinate
-        , viewMoveControls
-        , Dict.get playerCoordinate locationsData |> viewLocationAction Perform
-        , Dict.get playerCoordinate locationsData |> viewLocationResource
-        , viewMap playerCoordinate
-        ]
+    else
+        let
+            playerCoordinate : PlayerCoordinate
+            playerCoordinate =
+                ( model.playerPosition.lat, model.playerPosition.lon )
+
+            locationsData : LocationsData
+            locationsData =
+                model.locationsData
+
+            locationData : Maybe LocationData
+            locationData =
+                findSafeInDict playerCoordinate locationsData
+        in
+        div []
+            [ viewLocation playerCoordinate
+            , viewMoveControls
+            , viewLocationAction Perform locationData
+            , viewLocationResource locationData
+            , viewMap playerCoordinate
+            ]
+
+
+findSafeInDict : ( Int, Int ) -> LocationsData -> Maybe LocationData
+findSafeInDict id dict =
+    case Dict.get id dict of
+        Just res ->
+            res
+
+        Nothing ->
+            Debug.todo ("Didn't find " ++ Debug.toString id ++ " in " ++ Debug.toString dict)
 
 
 viewMoveControls : Html Msg
