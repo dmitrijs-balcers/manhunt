@@ -15,7 +15,7 @@ type alias PlayerPosition =
 
 
 type alias LocationsData =
-    Dict ( Int, Int ) (Maybe LocationData)
+    Dict PlayerCoordinate LocationData
 
 
 type alias Model =
@@ -34,7 +34,7 @@ type Direction
 type Msg
     = Move Direction
     | Perform Action
-    | UpdateLocationData Int
+    | RefreshLocation Int
 
 
 type alias PlayerCoordinate =
@@ -56,18 +56,44 @@ update msg model =
     case msg of
         Move direction ->
             ( { model | playerPosition = updatePlayerPosition model.playerPosition direction }
-            , Random.generate UpdateLocationData (Random.int 1 6000)
+            , Random.generate RefreshLocation (Random.int 1 6000)
             )
 
-        UpdateLocationData randomNumber ->
-            ( { model | locationsData = updateLocationData randomNumber model }
+        RefreshLocation randomNumber ->
+            ( { model | locationsData = refreshLocation randomNumber model }
             , Cmd.none
             )
 
         Perform action ->
-            case action of
-                _ ->
-                    ( model, Cmd.none )
+            ( { model | locationsData = performAction model }, Cmd.none )
+
+
+performAction : Model -> LocationsData
+performAction model =
+    let
+        position : PlayerCoordinate
+        position =
+            ( model.playerPosition.lat, model.playerPosition.lon )
+
+        subtract : Maybe LocationData -> Maybe LocationData
+        subtract maybeLocationData =
+            case maybeLocationData of
+                Just ( ( resource, action ), amount ) ->
+                    let
+                        newAmount : Int
+                        newAmount =
+                            amount - 1
+                    in
+                    if newAmount == 0 then
+                        Nothing
+
+                    else
+                        Just ( ( resource, action ), newAmount )
+
+                Nothing ->
+                    maybeLocationData
+    in
+    Dict.update position subtract model.locationsData
 
 
 updatePlayerPosition : PlayerPosition -> Direction -> PlayerPosition
@@ -86,25 +112,39 @@ updatePlayerPosition playerPosition direction =
             { playerPosition | lat = playerPosition.lat - 1 }
 
 
-updateLocationData : Int -> Model -> LocationsData
-updateLocationData randomNumber model =
+refreshLocation : Int -> Model -> LocationsData
+refreshLocation seed model =
     let
         position : PlayerCoordinate
         position =
             ( model.playerPosition.lat, model.playerPosition.lon )
 
-        locationData : Maybe (Maybe LocationData)
+        locationData : Maybe LocationData
         locationData =
             Dict.get position model.locationsData
     in
     case locationData of
         Just data ->
+            {-
+               There should be delay between the updates
+               If location data were not generated at first we should regenerate after X time
+            -}
             Debug.log "location data already exists" model.locationsData
 
         Nothing ->
             case getLandscape position of
                 Just landscape ->
-                    Dict.insert position (generateLocationData randomNumber landscape) model.locationsData
+                    let
+                        generatedLocationData : Maybe LocationData
+                        generatedLocationData =
+                            generateLocationData seed landscape
+                    in
+                    case generatedLocationData of
+                        Just ld ->
+                            Dict.insert position ld model.locationsData
+
+                        Nothing ->
+                            model.locationsData
 
                 Nothing ->
                     model.locationsData
@@ -114,52 +154,45 @@ updateLocationData randomNumber model =
 -- VIEW
 
 
-viewLocationResource : Maybe LocationData -> Html msg
+viewLocationResource : LocationData -> Html msg
 viewLocationResource data =
-    case data of
-        Just s ->
-            text (stringifyLocationData s)
-
-        Nothing ->
-            text ""
+    text (stringifyLocationData data)
 
 
 view : Model -> Html Msg
 view model =
-    if Dict.size model.locationsData == 0 then
-        text ""
+    let
+        playerCoordinate : PlayerCoordinate
+        playerCoordinate =
+            ( model.playerPosition.lat, model.playerPosition.lon )
 
-    else
-        let
-            playerCoordinate : PlayerCoordinate
-            playerCoordinate =
-                ( model.playerPosition.lat, model.playerPosition.lon )
+        locationsData : LocationsData
+        locationsData =
+            model.locationsData
 
-            locationsData : LocationsData
-            locationsData =
-                model.locationsData
-
-            locationData : Maybe LocationData
-            locationData =
-                findSafeInDict playerCoordinate locationsData
-        in
-        div []
-            [ viewLocation playerCoordinate
-            , viewMoveControls
-            , viewLocationAction Perform locationData
-            , viewLocationResource locationData
-            , viewMap playerCoordinate
-            ]
+        locationData : Maybe LocationData
+        locationData =
+            Dict.get playerCoordinate locationsData
+    in
+    div []
+        [ viewLocation playerCoordinate
+        , viewMoveControls
+        , viewResource locationData
+        , viewMap playerCoordinate
+        ]
 
 
-findSafeInDict : ( Int, Int ) -> LocationsData -> Maybe LocationData
-findSafeInDict id dict =
-    case Dict.get id dict of
-        Just res ->
-            res
-
+viewResource : Maybe LocationData -> Html Msg
+viewResource maybeLocationData =
+    case maybeLocationData of
         Nothing ->
-            Debug.todo ("Didn't find " ++ Debug.toString id ++ " in " ++ Debug.toString dict)
+            text ""
+
+        Just locationData ->
+            div []
+                [ viewLocationAction Perform locationData
+                , viewLocationResource locationData
+                ]
 
 
 viewMoveControls : Html Msg
@@ -175,7 +208,7 @@ viewMoveControls =
 main : Program () Model Msg
 main =
     Browser.element
-        { init = \flags -> ( initialModel, Random.generate UpdateLocationData (Random.int 1 6000) )
+        { init = \flags -> ( initialModel, Random.generate RefreshLocation (Random.int 1 6000) )
         , subscriptions = always Sub.none
         , view = view
         , update = update

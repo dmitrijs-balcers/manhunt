@@ -24,7 +24,7 @@ type alias World a =
 
 
 type alias ResourceDict a =
-    Dict Int a
+    Array a
 
 
 type alias Resources a =
@@ -61,50 +61,41 @@ type alias LocationData =
 
 woodResources : ResourceDict Resource
 woodResources =
-    Dict.fromList
-        [ ( 0, ( "Oak", 0.25, 10 ) )
-        , ( 1, ( "Elm", 0.25, 10 ) )
-        , ( 2, ( "Birch", 0.25, 10 ) )
-        , ( 3, ( "Willow", 0.25, 10 ) )
+    Array.fromList
+        [ ( "Oak", 0.1, 10 )
+        , ( "Elm", 0.25, 10 )
+        , ( "Birch", 0.5, 10 )
+        , ( "Willow", 0.3, 10 )
         ]
 
 
 rockResources : ResourceDict Resource
 rockResources =
-    Dict.fromList
-        [ ( 0, ( "Steel", 0.25, 10 ) )
-        , ( 1, ( "Bronze", 0.25, 10 ) )
-        , ( 2, ( "Stone", 0.25, 10 ) )
-        , ( 3, ( "Gold", 0.25, 10 ) )
+    Array.fromList
+        [ ( "Steel", 0.25, 10 )
+        , ( "Bronze", 0.25, 10 )
+        , ( "Stone", 0.25, 10 )
+        , ( "Gold", 0.25, 10 )
         ]
 
 
 flowers : ResourceDict Resource
 flowers =
-    Dict.fromList
-        [ ( 0, ( "Buttercup", 0.25, 10 ) )
-        , ( 1, ( "Daffodil", 0.25, 10 ) )
-        , ( 2, ( "Tulip", 0.25, 10 ) )
-        , ( 3, ( "CommonDaisy", 0.25, 10 ) )
+    Array.fromList
+        [ ( "Buttercup", 0.25, 10 )
+        , ( "Daffodil", 0.25, 10 )
+        , ( "Tulip", 0.25, 10 )
+        , ( "CommonDaisy", 0.25, 10 )
         ]
 
 
 mushrooms : ResourceDict Resource
 mushrooms =
-    Dict.fromList
-        [ ( 0, ( "Shiitake", 0.25, 10 ) )
-        , ( 1, ( "Chanterelle", 0.25, 10 ) )
-        , ( 2, ( "Agaricus", 0.25, 10 ) )
-        , ( 3, ( "Enoki", 0.25, 10 ) )
-        ]
-
-
-actions : Dict Int String
-actions =
-    Dict.fromList
-        [ ( 0, "Pluck" )
-        , ( 1, "Mine" )
-        , ( 2, "Chop" )
+    Array.fromList
+        [ ( "Shiitake", 0.25, 10 )
+        , ( "Chanterelle", 0.25, 10 )
+        , ( "Agaricus", 0.25, 10 )
+        , ( "Enoki", 0.25, 10 )
         ]
 
 
@@ -122,18 +113,18 @@ type alias LandscapeName =
     String
 
 
-landscapes : Dict LandscapeId ( LandscapeName, LandscapeResources )
+landscapes : Array ( LandscapeName, LandscapeResources )
 landscapes =
-    Dict.fromList
-        [ ( 0, ( "Field", [ ( Pluck, flowers ) ] ) )
-        , ( 1, ( "Rock", [ ( Mine, rockResources ) ] ) )
-        , ( 2, ( "Forest", [ ( Chop, woodResources ), ( Pluck, mushrooms ) ] ) )
+    Array.fromList
+        [ ( "Field", [ ( Pluck, flowers ) ] )
+        , ( "Rock", [ ( Mine, rockResources ) ] )
+        , ( "Forest", [ ( Chop, woodResources ), ( Pluck, mushrooms ) ] )
         ]
 
 
 findSafeInDict : Int -> ResourceDict a -> a
 findSafeInDict id dict =
-    case Dict.get id dict of
+    case Array.get id dict of
         Just res ->
             res
 
@@ -152,7 +143,7 @@ findSafeInList id list =
 
 
 generateLocationData : Int -> LandscapeId -> Maybe LocationData
-generateLocationData randomNumber landscapeId =
+generateLocationData seed landscapeId =
     let
         landscapeValue : LandscapeResources
         landscapeValue =
@@ -161,7 +152,7 @@ generateLocationData randomNumber landscapeId =
 
         randomLandscapeResourceTypeId : Int
         randomLandscapeResourceTypeId =
-            step (Random.int 0 (List.length landscapeValue - 1)) (initialSeed randomNumber) |> Tuple.first
+            step (Random.int 0 (List.length landscapeValue - 1)) (initialSeed seed) |> Tuple.first
 
         landscapeRandomResource : ( Action, ResourceDict Resource )
         landscapeRandomResource =
@@ -177,7 +168,7 @@ generateLocationData randomNumber landscapeId =
 
         resourceId : Int
         resourceId =
-            step (Random.int 0 (Dict.size landscapeResources - 1)) (initialSeed randomNumber)
+            step (Random.int 0 (Array.length landscapeResources - 1)) (initialSeed seed)
                 |> Tuple.first
 
         resource : Resource
@@ -189,13 +180,21 @@ generateLocationData randomNumber landscapeId =
 
         amount : Amount
         amount =
-            Tuple.first (step (Random.int 0 maxAmount) (initialSeed randomNumber))
+            Tuple.first (step (Random.int 0 maxAmount) (initialSeed seed))
+
+        luck : Float
+        luck =
+            Tuple.first (step (Random.float 0 1) (initialSeed seed))
+
+        didFind : Bool
+        didFind =
+            luck > chanceToFind
     in
-    if amount > 0 then
+    if amount > 0 && didFind then
         Just ( ( resource, landscapeAction ), amount )
 
     else
-        Nothing
+        Debug.log ("Didn't find " ++ Debug.toString resource ++ "with amount#" ++ String.fromInt amount ++ " and luck#" ++ String.fromFloat luck) Nothing
 
 
 stringifyLocationData : LocationData -> String
@@ -279,7 +278,7 @@ arrOrEmpty mArr =
 
 landscapeToString : LandscapeId -> String
 landscapeToString landscape =
-    case Dict.get landscape landscapes of
+    case Array.get landscape landscapes of
         Just l ->
             Tuple.first l
 
@@ -322,18 +321,13 @@ viewLocation pos =
             text ("N/A " ++ coordinateToString pos)
 
 
-viewLocationAction : (Action -> msg) -> Maybe LocationData -> Html msg
-viewLocationAction msg maybeLocationData =
-    case maybeLocationData of
-        Just locationData ->
-            div []
-                [ button
-                    [ onClick (msg (Tuple.second (Tuple.first locationData))) ]
-                    [ text (stringifyAction (Tuple.second (Tuple.first locationData))) ]
-                ]
-
-        Nothing ->
-            text ""
+viewLocationAction : (Action -> msg) -> LocationData -> Html msg
+viewLocationAction msg locationData =
+    div []
+        [ button
+            [ onClick (msg (Tuple.second (Tuple.first locationData))) ]
+            [ text (stringifyAction (Tuple.second (Tuple.first locationData))) ]
+        ]
 
 
 stringifyAction : Action -> String
@@ -351,7 +345,7 @@ stringifyAction action =
 
 stringifyResource : LandscapeId -> String
 stringifyResource landscape =
-    case Dict.get landscape landscapes of
+    case Array.get landscape landscapes of
         Just l ->
             Tuple.first l
 
