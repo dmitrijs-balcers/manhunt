@@ -15,7 +15,7 @@ type alias PlayerPosition =
 
 
 type alias LocationsData =
-    Dict PlayerCoordinate (Maybe LocationData)
+    Dict PlayerCoordinate LocationData
 
 
 type alias Model =
@@ -75,37 +75,23 @@ performAction model =
         position =
             ( model.playerPosition.lat, model.playerPosition.lon )
 
-        locationData : LocationData
-        locationData =
-            case findSafeInDict position model.locationsData of
-                Just data ->
-                    data
+        subtract : Maybe LocationData -> Maybe LocationData
+        subtract maybeLocationData =
+            case maybeLocationData of
+                Just ( ( resource, action ), amount ) ->
+                    let
+                        newAmount : Int
+                        newAmount =
+                            amount - 1
+                    in
+                    if newAmount == 0 then
+                        Nothing
+
+                    else
+                        Just ( ( resource, action ), newAmount )
 
                 Nothing ->
-                    Debug.todo "Shouldn't be possible perform action if no data"
-
-        subtract : Maybe (Maybe LocationData) -> Maybe (Maybe LocationData)
-        subtract maybeMaybeLocationData =
-            case maybeMaybeLocationData of
-                Just maybeLocationData ->
-                    case maybeLocationData of
-                        Just ( ( resource, action ), amount ) ->
-                            let
-                                newAmount : Int
-                                newAmount =
-                                    amount - 1
-                            in
-                            if newAmount == 0 then
-                                Just Nothing
-
-                            else
-                                Just (Just ( ( resource, action ), newAmount ))
-
-                        Nothing ->
-                            maybeMaybeLocationData
-
-                Nothing ->
-                    maybeMaybeLocationData
+                    maybeLocationData
     in
     Dict.update position subtract model.locationsData
 
@@ -133,7 +119,7 @@ refreshLocation seed model =
         position =
             ( model.playerPosition.lat, model.playerPosition.lon )
 
-        locationData : Maybe (Maybe LocationData)
+        locationData : Maybe LocationData
         locationData =
             Dict.get position model.locationsData
     in
@@ -148,7 +134,17 @@ refreshLocation seed model =
         Nothing ->
             case getLandscape position of
                 Just landscape ->
-                    Dict.insert position (generateLocationData seed landscape) model.locationsData
+                    let
+                        generatedLocationData : Maybe LocationData
+                        generatedLocationData =
+                            generateLocationData seed landscape
+                    in
+                    case generatedLocationData of
+                        Just ld ->
+                            Dict.insert position ld model.locationsData
+
+                        Nothing ->
+                            model.locationsData
 
                 Nothing ->
                     model.locationsData
@@ -158,52 +154,45 @@ refreshLocation seed model =
 -- VIEW
 
 
-viewLocationResource : Maybe LocationData -> Html msg
+viewLocationResource : LocationData -> Html msg
 viewLocationResource data =
-    case data of
-        Just s ->
-            text (stringifyLocationData s)
-
-        Nothing ->
-            text ""
+    text (stringifyLocationData data)
 
 
 view : Model -> Html Msg
 view model =
-    if Dict.size model.locationsData == 0 then
-        text ""
+    let
+        playerCoordinate : PlayerCoordinate
+        playerCoordinate =
+            ( model.playerPosition.lat, model.playerPosition.lon )
 
-    else
-        let
-            playerCoordinate : PlayerCoordinate
-            playerCoordinate =
-                ( model.playerPosition.lat, model.playerPosition.lon )
+        locationsData : LocationsData
+        locationsData =
+            model.locationsData
 
-            locationsData : LocationsData
-            locationsData =
-                model.locationsData
-
-            locationData : Maybe LocationData
-            locationData =
-                findSafeInDict playerCoordinate locationsData
-        in
-        div []
-            [ viewLocation playerCoordinate
-            , viewMoveControls
-            , viewLocationAction Perform locationData
-            , viewLocationResource locationData
-            , viewMap playerCoordinate
-            ]
+        locationData : Maybe LocationData
+        locationData =
+            Dict.get playerCoordinate locationsData
+    in
+    div []
+        [ viewLocation playerCoordinate
+        , viewMoveControls
+        , viewResource locationData
+        , viewMap playerCoordinate
+        ]
 
 
-findSafeInDict : ( Int, Int ) -> LocationsData -> Maybe LocationData
-findSafeInDict id dict =
-    case Dict.get id dict of
-        Just res ->
-            res
-
+viewResource : Maybe LocationData -> Html Msg
+viewResource maybeLocationData =
+    case maybeLocationData of
         Nothing ->
-            Debug.todo ("Didn't find " ++ Debug.toString id ++ " in " ++ Debug.toString dict)
+            text ""
+
+        Just locationData ->
+            div []
+                [ viewLocationAction Perform locationData
+                , viewLocationResource locationData
+                ]
 
 
 viewMoveControls : Html Msg

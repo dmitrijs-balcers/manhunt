@@ -321,18 +321,13 @@ viewLocation pos =
             text ("N/A " ++ coordinateToString pos)
 
 
-viewLocationAction : (Action -> msg) -> Maybe LocationData -> Html msg
-viewLocationAction msg maybeLocationData =
-    case maybeLocationData of
-        Just locationData ->
-            div []
-                [ button
-                    [ onClick (msg (Tuple.second (Tuple.first locationData))) ]
-                    [ text (stringifyAction (Tuple.second (Tuple.first locationData))) ]
-                ]
-
-        Nothing ->
-            text ""
+viewLocationAction : (Action -> msg) -> LocationData -> Html msg
+viewLocationAction msg locationData =
+    div []
+        [ button
+            [ onClick (msg (Tuple.second (Tuple.first locationData))) ]
+            [ text (stringifyAction (Tuple.second (Tuple.first locationData))) ]
+        ]
 
 
 stringifyAction : Action -> String
