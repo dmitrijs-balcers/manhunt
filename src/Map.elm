@@ -15,7 +15,7 @@ import Debug
 import Dict exposing (Dict)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
-import Random exposing (initialSeed, step)
+import Random exposing (Seed, initialSeed, step)
 import Set exposing (Set)
 
 
@@ -145,31 +145,17 @@ findSafeInList id list =
 generateLocationData : Int -> LandscapeId -> Maybe LocationData
 generateLocationData seed landscapeId =
     let
-        landscapeValue : LandscapeResources
-        landscapeValue =
+        ( _, landscapeValue ) =
             findSafeInDict landscapeId landscapes
-                |> Tuple.second
 
-        randomLandscapeResourceTypeId : Int
-        randomLandscapeResourceTypeId =
-            step (Random.int 0 (List.length landscapeValue - 1)) (initialSeed seed) |> Tuple.first
+        ( randomLandscapeResourceTypeId, resourceTypeSeed ) =
+            step (Random.int 0 (List.length landscapeValue - 1)) (initialSeed seed)
 
-        landscapeRandomResource : ( Action, ResourceDict Resource )
-        landscapeRandomResource =
+        ( landscapeAction, landscapeResources ) =
             findSafeInList randomLandscapeResourceTypeId landscapeValue
 
-        landscapeResources : ResourceDict Resource
-        landscapeResources =
-            Tuple.second landscapeRandomResource
-
-        landscapeAction : Action
-        landscapeAction =
-            Tuple.first landscapeRandomResource
-
-        resourceId : Int
-        resourceId =
-            step (Random.int 0 (Array.length landscapeResources - 1)) (initialSeed seed)
-                |> Tuple.first
+        ( resourceId, resourceSeed ) =
+            step (Random.int 0 (Array.length landscapeResources - 1)) resourceTypeSeed
 
         resource : Resource
         resource =
@@ -178,23 +164,27 @@ generateLocationData seed landscapeId =
         ( resourceName, chanceToFind, maxAmount ) =
             resource
 
-        amount : Amount
-        amount =
-            Tuple.first (step (Random.int 0 maxAmount) (initialSeed seed))
+        ( amount, amountSeed ) =
+            step (Random.int 0 maxAmount) resourceSeed
 
-        luck : Float
-        luck =
-            Tuple.first (step (Random.float 0 1) (initialSeed seed))
-
-        didFind : Bool
-        didFind =
-            luck > chanceToFind
+        ( luck, luckSeed ) =
+            rollDice amountSeed
     in
-    if amount > 0 && didFind then
+    if amount > 0 && succeed luck chanceToFind then
         Just ( ( resource, landscapeAction ), amount )
 
     else
         Debug.log ("Didn't find " ++ Debug.toString resource ++ "with amount#" ++ String.fromInt amount ++ " and luck#" ++ String.fromFloat luck) Nothing
+
+
+rollDice : Seed -> ( Float, Seed )
+rollDice seed =
+    step (Random.float 0 1) seed
+
+
+succeed : Float -> Float -> Bool
+succeed rolledLuck chanceNeededToSucceed =
+    rolledLuck > chanceNeededToSucceed
 
 
 stringifyLocationData : LocationData -> String
