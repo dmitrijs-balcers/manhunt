@@ -114,7 +114,17 @@ mushrooms =
 
 generateWorld : Size -> Seed -> World Height
 generateWorld size seed =
-    Array.initialize size (\x -> Array.initialize size (\y -> Simplex.simplex2D ( x, y ) seed))
+    let
+        smoothFactor =
+            0.2
+    in
+    Array.initialize size
+        (\x ->
+            Array.initialize size
+                (\y ->
+                    Simplex.simplex2D ( toFloat x * smoothFactor, toFloat y * smoothFactor ) seed
+                )
+        )
 
 
 type Action
