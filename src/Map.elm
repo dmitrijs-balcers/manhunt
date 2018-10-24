@@ -1,7 +1,10 @@
 module Map exposing
     ( Action
+    , Height
     , LocationData
+    , World
     , generateLocationData
+    , generateWorld
     , getLandscape
     , landscapeToString
     , stringifyLocationData
@@ -14,9 +17,11 @@ import Array exposing (Array)
 import Debug
 import Dict exposing (Dict)
 import Html exposing (Html, button, div, text)
+import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Random exposing (Seed, initialSeed, step)
 import Set exposing (Set)
+import Simplex
 
 
 type alias World a =
@@ -52,6 +57,14 @@ type alias Resource =
 
 
 type alias Amount =
+    Int
+
+
+type alias Height =
+    Float
+
+
+type alias Size =
     Int
 
 
@@ -99,6 +112,11 @@ mushrooms =
         ]
 
 
+generateWorld : Size -> Seed -> World Height
+generateWorld size seed =
+    Array.initialize size (\x -> Array.initialize size (\y -> Simplex.simplex2D ( x, y ) seed))
+
+
 type Action
     = Pluck
     | Mine
@@ -117,8 +135,8 @@ landscapes : Array ( LandscapeName, LandscapeResources )
 landscapes =
     Array.fromList
         [ ( "Field", [ ( Pluck, flowers ) ] )
-        , ( "Rock", [ ( Mine, rockResources ) ] )
         , ( "Forest", [ ( Chop, woodResources ), ( Pluck, mushrooms ) ] )
+        , ( "Rock", [ ( Mine, rockResources ) ] )
         ]
 
 
@@ -200,17 +218,6 @@ stringifyLocationData locationData =
     name ++ " " ++ (Tuple.second locationData |> String.fromInt)
 
 
-worldMap : World LandscapeId
-worldMap =
-    listToArray
-        [ [ 0, 0, 2, 0, 0 ]
-        , [ 0, 1, 1, 1, 0 ]
-        , [ 2, 1, 2, 1, 2 ]
-        , [ 0, 1, 1, 1, 0 ]
-        , [ 0, 0, 2, 0, 0 ]
-        ]
-
-
 getItemFrom2dArray : ( Int, Int ) -> World a -> Maybe a
 getItemFrom2dArray ( lat, lon ) map =
     Array.get lat (Maybe.withDefault Array.empty (Array.get lon map))
@@ -226,19 +233,23 @@ listToArray mapList =
     List.foldl mapper (Array.fromList []) mapList
 
 
-coordinateOnMap : ( Int, Int ) -> ( Int, Int )
-coordinateOnMap ( lat, lon ) =
-    ( mapHeight - lat, mapHeight - lon )
+coordinateOnMap : ( Int, Int ) -> Int -> ( Int, Int )
+coordinateOnMap ( lat, lon ) mapSize =
+    let
+        toHalf =
+            mapSize // 2 - 1
+    in
+    ( toHalf - lat, toHalf - lon )
 
 
-getLandscape : ( Int, Int ) -> Maybe LandscapeId
-getLandscape position =
-    getItemFrom2dArray (coordinateOnMap position) worldMap
+getLandscape : ( Int, Int ) -> World Height -> Maybe LandscapeId
+getLandscape position worldMap =
+    case getItemFrom2dArray (coordinateOnMap position (Array.length worldMap)) worldMap of
+        Just height ->
+            Just (heightToLandscapeId height)
 
-
-mapHeight : Int
-mapHeight =
-    (Array.length worldMap - 1) // 2
+        Nothing ->
+            Nothing
 
 
 generateMiniMap : ( Int, Int ) -> Int -> World a -> World a
@@ -248,12 +259,11 @@ generateMiniMap ( lat, lon ) visibility arr =
             ( ( lat - visibility, lat + 1 + visibility )
             , ( lon - visibility, lon + visibility )
             )
+
+        arrayOfHeight =
+            Array.initialize (lonTo - lonFrom) (\n -> lonFrom + n)
     in
-    Array.fromList
-        [ cutRow latRange (arrOrEmpty (Array.get lonFrom arr))
-        , cutRow latRange (arrOrEmpty (Array.get lon arr))
-        , cutRow latRange (arrOrEmpty (Array.get lonTo arr))
-        ]
+    Array.map (\n -> cutRow latRange (arrOrEmpty (Array.get n arr))) arrayOfHeight
 
 
 cutRow : ( Int, Int ) -> Array a -> Array a
@@ -266,9 +276,13 @@ arrOrEmpty mArr =
     Maybe.withDefault Array.empty mArr
 
 
-landscapeToString : LandscapeId -> String
-landscapeToString landscape =
-    case Array.get landscape landscapes of
+landscapeToString : Height -> String
+landscapeToString height =
+    let
+        landscapeId =
+            heightToLandscapeId height
+    in
+    case Array.get landscapeId landscapes of
         Just l ->
             Tuple.first l
 
@@ -276,36 +290,57 @@ landscapeToString landscape =
             Debug.todo "Not landscape found :/"
 
 
+heightToLandscapeId : Height -> LandscapeId
+heightToLandscapeId height =
+    if height < (0.66 - 1) then
+        0
+
+    else if height > (0.66 - 1) && height < 0.66 then
+        1
+
+    else
+        2
+
+
 
 -- VIEW
 
 
-viewMap : ( Int, Int ) -> Html msg
-viewMap ( lat, lon ) =
-    div [] (Array.toList (Array.map viewRow (generateMiniMap (coordinateOnMap ( lat, lon )) (1 * 2 - 1) worldMap)))
+viewMap : ( Int, Int ) -> World Height -> Html msg
+viewMap ( lat, lon ) worldMap =
+    let
+        mapCoord =
+            coordinateOnMap ( lat, lon ) (Array.length worldMap)
+    in
+    div [] (Array.toList (Array.map viewRow (generateMiniMap mapCoord 3 worldMap)))
 
 
-viewRow : Array LandscapeId -> Html msg
+viewRow : Array Height -> Html msg
 viewRow row =
-    div []
-        [ text
-            ("["
-                ++ String.join "," (Array.toList (Array.map landscapeToString row))
-                ++ "]"
-            )
-        ]
+    div
+        [ style "display" "block" ]
+        (Array.toList row
+            |> List.map
+                (\h ->
+                    div
+                        [ style "display" "inline-block" ]
+                        [ text (landscapeToString h) ]
+                )
+        )
 
 
-viewLocation : ( Int, Int ) -> Html msg
-viewLocation pos =
+viewLocation : ( Int, Int ) -> World Height -> Html msg
+viewLocation pos worldMap =
     let
         coordinateToString : ( Int, Int ) -> String
         coordinateToString ( lat, lon ) =
             "[" ++ String.fromInt lat ++ "/" ++ String.fromInt lon ++ "]"
     in
-    case getItemFrom2dArray (coordinateOnMap pos) worldMap of
+    case getItemFrom2dArray (coordinateOnMap pos (Array.length worldMap)) worldMap of
         Just landscape ->
-            text ("Location: " ++ landscapeToString landscape ++ " " ++ coordinateToString pos)
+            div
+                [ style "color" "red" ]
+                [ text ("Location: " ++ landscapeToString landscape ++ " " ++ coordinateToString pos) ]
 
         Nothing ->
             text ("N/A " ++ coordinateToString pos)
