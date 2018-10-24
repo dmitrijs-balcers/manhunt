@@ -6,8 +6,9 @@ import Dict exposing (Dict)
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import Map exposing (Action, LocationData, generateLocationData, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
-import Random
+import Random exposing (initialSeed)
 import Result
+import Simplex exposing (simplex2D)
 
 
 type alias PlayerPosition =
@@ -118,6 +119,10 @@ refreshLocation seed model =
         position : PlayerCoordinate
         position =
             ( model.playerPosition.lat, model.playerPosition.lon )
+
+        test : Float
+        test =
+            Debug.log "test simplex2D" (simplex2D position (initialSeed seed))
 
         locationData : Maybe LocationData
         locationData =
