@@ -3,9 +3,10 @@ module Manhunt exposing (Model, main)
 import Array exposing (Array)
 import Browser exposing (sandbox)
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, img, text)
+import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
-import Map exposing (Action, LocationData, generateLocationData, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
+import Map exposing (Action, Amount, Height, LocationData, World, generateLocationData, generateWorld, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
 import Random exposing (initialSeed)
 import Result
 import Simplex exposing (simplex2D)
@@ -22,6 +23,7 @@ type alias LocationsData =
 type alias Model =
     { playerPosition : PlayerPosition
     , locationsData : LocationsData
+    , worldData : World Height
     }
 
 
@@ -35,16 +37,18 @@ type Direction
 type Msg
     = Move Direction
     | Perform Action
-    | RefreshLocation Int
+    | GenerateWorld Int
 
 
 type alias PlayerCoordinate =
     ( Int, Int )
 
 
+initialModel : Model
 initialModel =
     { playerPosition = { lat = 0, lon = 0 }
     , locationsData = Dict.empty
+    , worldData = Array.empty
     }
 
 
@@ -57,11 +61,19 @@ update msg model =
     case msg of
         Move direction ->
             ( { model | playerPosition = updatePlayerPosition model.playerPosition direction }
-            , Random.generate RefreshLocation (Random.int 1 6000)
+            , Random.generate GenerateWorld (Random.int 1 6000)
             )
 
-        RefreshLocation randomNumber ->
-            ( { model | locationsData = refreshLocation randomNumber model }
+        GenerateWorld randomNumber ->
+            ( { model
+                | locationsData = refreshLocation randomNumber model
+                , worldData =
+                    if Array.length model.worldData > 0 then
+                        model.worldData
+
+                    else
+                        generateWorld (Map.Size 150) (initialSeed randomNumber)
+              }
             , Cmd.none
             )
 
@@ -79,7 +91,7 @@ performAction model =
         subtract : Maybe LocationData -> Maybe LocationData
         subtract maybeLocationData =
             case maybeLocationData of
-                Just ( ( resource, action ), amount ) ->
+                Just ( ( resource, action ), Map.Amount amount ) ->
                     let
                         newAmount : Int
                         newAmount =
@@ -89,7 +101,7 @@ performAction model =
                         Nothing
 
                     else
-                        Just ( ( resource, action ), newAmount )
+                        Just ( ( resource, action ), Map.Amount newAmount )
 
                 Nothing ->
                     maybeLocationData
@@ -120,10 +132,6 @@ refreshLocation seed model =
         position =
             ( model.playerPosition.lat, model.playerPosition.lon )
 
-        test : Float
-        test =
-            Debug.log "test simplex2D" (simplex2D position (initialSeed seed))
-
         locationData : Maybe LocationData
         locationData =
             Dict.get position model.locationsData
@@ -137,7 +145,7 @@ refreshLocation seed model =
             Debug.log "location data already exists" model.locationsData
 
         Nothing ->
-            case getLandscape position of
+            case getLandscape position model.worldData of
                 Just landscape ->
                     let
                         generatedLocationData : Maybe LocationData
@@ -180,10 +188,10 @@ view model =
             Dict.get playerCoordinate locationsData
     in
     div []
-        [ viewLocation playerCoordinate
+        [ viewLocation playerCoordinate model.worldData
         , viewMoveControls
         , viewResource locationData
-        , viewMap playerCoordinate
+        , viewMap playerCoordinate model.worldData
         ]
 
 
@@ -213,7 +221,7 @@ viewMoveControls =
 main : Program () Model Msg
 main =
     Browser.element
-        { init = \flags -> ( initialModel, Random.generate RefreshLocation (Random.int 1 6000) )
+        { init = \flags -> ( initialModel, Random.generate GenerateWorld (Random.int 1 6000) )
         , subscriptions = always Sub.none
         , view = view
         , update = update

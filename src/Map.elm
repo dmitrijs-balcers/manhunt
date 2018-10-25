@@ -1,7 +1,12 @@
 module Map exposing
     ( Action
+    , Amount(..)
+    , Height
     , LocationData
+    , Size(..)
+    , World
     , generateLocationData
+    , generateWorld
     , getLandscape
     , landscapeToString
     , stringifyLocationData
@@ -13,10 +18,36 @@ module Map exposing
 import Array exposing (Array)
 import Debug
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, img, text)
+import Html.Attributes exposing (src, style)
 import Html.Events exposing (onClick)
 import Random exposing (Seed, initialSeed, step)
 import Set exposing (Set)
+import Simplex
+
+
+type LandscapeId
+    = LandscapeId Int
+
+
+type ResourceName
+    = ResourceName String
+
+
+type Rarity
+    = Rarity Float
+
+
+type Amount
+    = Amount Int
+
+
+type Height
+    = Height Float
+
+
+type Size
+    = Size Int
 
 
 type alias World a =
@@ -31,28 +62,8 @@ type alias Resources a =
     Dict Int (ResourceDict a)
 
 
-type alias LandscapeId =
-    Int
-
-
-type alias ResourceName =
-    String
-
-
-type alias Rarity =
-    Float
-
-
-type alias MaxAmount =
-    Amount
-
-
 type alias Resource =
-    ( String, Rarity, MaxAmount )
-
-
-type alias Amount =
-    Int
+    ( ResourceName, Rarity, Amount )
 
 
 type alias LocationData =
@@ -62,41 +73,63 @@ type alias LocationData =
 woodResources : ResourceDict Resource
 woodResources =
     Array.fromList
-        [ ( "Oak", 0.1, 10 )
-        , ( "Elm", 0.25, 10 )
-        , ( "Birch", 0.5, 10 )
-        , ( "Willow", 0.3, 10 )
+        [ ( ResourceName "Oak", Rarity 0.1, Amount 10 )
+        , ( ResourceName "Elm", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Birch", Rarity 0.5, Amount 10 )
+        , ( ResourceName "Willow", Rarity 0.3, Amount 10 )
         ]
 
 
 rockResources : ResourceDict Resource
 rockResources =
     Array.fromList
-        [ ( "Steel", 0.25, 10 )
-        , ( "Bronze", 0.25, 10 )
-        , ( "Stone", 0.25, 10 )
-        , ( "Gold", 0.25, 10 )
+        [ ( ResourceName "Steel", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Bronze", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Stone", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Gold", Rarity 0.001, Amount 2 )
         ]
 
 
 flowers : ResourceDict Resource
 flowers =
     Array.fromList
-        [ ( "Buttercup", 0.25, 10 )
-        , ( "Daffodil", 0.25, 10 )
-        , ( "Tulip", 0.25, 10 )
-        , ( "CommonDaisy", 0.25, 10 )
+        [ ( ResourceName "Buttercup", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Daffodil", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Tulip", Rarity 0.25, Amount 10 )
+        , ( ResourceName "CommonDaisy", Rarity 0.25, Amount 10 )
         ]
 
 
 mushrooms : ResourceDict Resource
 mushrooms =
     Array.fromList
-        [ ( "Shiitake", 0.25, 10 )
-        , ( "Chanterelle", 0.25, 10 )
-        , ( "Agaricus", 0.25, 10 )
-        , ( "Enoki", 0.25, 10 )
+        [ ( ResourceName "Shiitake", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Chanterelle", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Agaricus", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Enoki", Rarity 0.25, Amount 10 )
         ]
+
+
+generateWorld : Size -> Seed -> World Height
+generateWorld (Size size) seed =
+    let
+        smoothFactor =
+            0.01
+
+        permutationTable =
+            Simplex.permutationTable seed
+    in
+    Array.initialize size
+        (\x ->
+            Array.initialize size
+                (\y ->
+                    let
+                        floatPoint =
+                            ( toFloat x * smoothFactor, toFloat y * smoothFactor )
+                    in
+                    Height (Simplex.simplex2D permutationTable floatPoint)
+                )
+        )
 
 
 type Action
@@ -117,8 +150,8 @@ landscapes : Array ( LandscapeName, LandscapeResources )
 landscapes =
     Array.fromList
         [ ( "Field", [ ( Pluck, flowers ) ] )
-        , ( "Rock", [ ( Mine, rockResources ) ] )
         , ( "Forest", [ ( Chop, woodResources ), ( Pluck, mushrooms ) ] )
+        , ( "Hill", [ ( Mine, rockResources ) ] )
         ]
 
 
@@ -143,7 +176,7 @@ findSafeInList id list =
 
 
 generateLocationData : Int -> LandscapeId -> Maybe LocationData
-generateLocationData seed landscapeId =
+generateLocationData seed (LandscapeId landscapeId) =
     let
         ( _, landscapeValue ) =
             findSafeInDict landscapeId landscapes
@@ -161,7 +194,7 @@ generateLocationData seed landscapeId =
         resource =
             findSafeInDict resourceId landscapeResources
 
-        ( resourceName, chanceToFind, maxAmount ) =
+        ( resourceName, Rarity rarity, Amount maxAmount ) =
             resource
 
         ( amount, amountSeed ) =
@@ -170,8 +203,8 @@ generateLocationData seed landscapeId =
         ( luck, luckSeed ) =
             rollDice amountSeed
     in
-    if amount > 0 && succeed luck chanceToFind then
-        Just ( ( resource, landscapeAction ), amount )
+    if amount > 0 && succeed luck rarity then
+        Just ( ( resource, landscapeAction ), Amount amount )
 
     else
         Debug.log ("Didn't find " ++ Debug.toString resource ++ "with amount#" ++ String.fromInt amount ++ " and luck#" ++ String.fromFloat luck) Nothing
@@ -190,25 +223,10 @@ succeed rolledLuck chanceNeededToSucceed =
 stringifyLocationData : LocationData -> String
 stringifyLocationData locationData =
     let
-        resource : Resource
-        resource =
-            locationData |> Tuple.first |> Tuple.first
-
-        ( name, _, _ ) =
-            resource
+        ( ( ( ResourceName name, _, _ ), action ), Amount amount ) =
+            locationData
     in
-    name ++ " " ++ (Tuple.second locationData |> String.fromInt)
-
-
-worldMap : World LandscapeId
-worldMap =
-    listToArray
-        [ [ 0, 0, 2, 0, 0 ]
-        , [ 0, 1, 1, 1, 0 ]
-        , [ 2, 1, 2, 1, 2 ]
-        , [ 0, 1, 1, 1, 0 ]
-        , [ 0, 0, 2, 0, 0 ]
-        ]
+    name ++ " " ++ String.fromInt amount
 
 
 getItemFrom2dArray : ( Int, Int ) -> World a -> Maybe a
@@ -226,19 +244,23 @@ listToArray mapList =
     List.foldl mapper (Array.fromList []) mapList
 
 
-coordinateOnMap : ( Int, Int ) -> ( Int, Int )
-coordinateOnMap ( lat, lon ) =
-    ( mapHeight - lat, mapHeight - lon )
+coordinateOnMap : ( Int, Int ) -> Int -> ( Int, Int )
+coordinateOnMap ( lat, lon ) mapSize =
+    let
+        toHalf =
+            mapSize // 2 - 1
+    in
+    ( toHalf - lat, toHalf - lon )
 
 
-getLandscape : ( Int, Int ) -> Maybe LandscapeId
-getLandscape position =
-    getItemFrom2dArray (coordinateOnMap position) worldMap
+getLandscape : ( Int, Int ) -> World Height -> Maybe LandscapeId
+getLandscape position worldMap =
+    case getItemFrom2dArray (coordinateOnMap position (Array.length worldMap)) worldMap of
+        Just height ->
+            Just (heightToLandscapeId height)
 
-
-mapHeight : Int
-mapHeight =
-    (Array.length worldMap - 1) // 2
+        Nothing ->
+            Nothing
 
 
 generateMiniMap : ( Int, Int ) -> Int -> World a -> World a
@@ -248,12 +270,11 @@ generateMiniMap ( lat, lon ) visibility arr =
             ( ( lat - visibility, lat + 1 + visibility )
             , ( lon - visibility, lon + visibility )
             )
+
+        arrayOfHeight =
+            Array.initialize (lonTo - lonFrom) (\n -> lonFrom + n)
     in
-    Array.fromList
-        [ cutRow latRange (arrOrEmpty (Array.get lonFrom arr))
-        , cutRow latRange (arrOrEmpty (Array.get lon arr))
-        , cutRow latRange (arrOrEmpty (Array.get lonTo arr))
-        ]
+    Array.map (\n -> cutRow latRange (arrOrEmpty (Array.get n arr))) arrayOfHeight
 
 
 cutRow : ( Int, Int ) -> Array a -> Array a
@@ -266,9 +287,13 @@ arrOrEmpty mArr =
     Maybe.withDefault Array.empty mArr
 
 
-landscapeToString : LandscapeId -> String
-landscapeToString landscape =
-    case Array.get landscape landscapes of
+landscapeToString : Height -> String
+landscapeToString height =
+    let
+        (LandscapeId landscapeId) =
+            heightToLandscapeId height
+    in
+    case Array.get landscapeId landscapes of
         Just l ->
             Tuple.first l
 
@@ -276,36 +301,76 @@ landscapeToString landscape =
             Debug.todo "Not landscape found :/"
 
 
+heightToLandscapeId : Height -> LandscapeId
+heightToLandscapeId (Height height) =
+    if height < (0.66 - 1) then
+        LandscapeId 0
+
+    else if height > (0.66 - 1) && height < 0.36 then
+        LandscapeId 1
+
+    else
+        LandscapeId 2
+
+
 
 -- VIEW
 
 
-viewMap : ( Int, Int ) -> Html msg
-viewMap ( lat, lon ) =
-    div [] (Array.toList (Array.map viewRow (generateMiniMap (coordinateOnMap ( lat, lon )) (1 * 2 - 1) worldMap)))
+viewMap : ( Int, Int ) -> World Height -> Html msg
+viewMap ( lat, lon ) worldMap =
+    let
+        mapCoord =
+            coordinateOnMap ( lat, lon ) (Array.length worldMap)
+    in
+    div [] (Array.toList (Array.map viewRow (generateMiniMap mapCoord 10 worldMap)))
 
 
-viewRow : Array LandscapeId -> Html msg
+viewRow : Array Height -> Html msg
 viewRow row =
-    div []
-        [ text
-            ("["
-                ++ String.join "," (Array.toList (Array.map landscapeToString row))
-                ++ "]"
-            )
+    div
+        [ style "display" "block"
+        , style "height" "32px"
         ]
+        (Array.toList row
+            |> List.map
+                (\h ->
+                    div
+                        [ style "display" "inline-block" ]
+                        [ landscapeToImg h ]
+                )
+        )
 
 
-viewLocation : ( Int, Int ) -> Html msg
-viewLocation pos =
+landscapeToImg : Height -> Html msg
+landscapeToImg height =
+    let
+        (LandscapeId landscapeId) =
+            heightToLandscapeId height
+    in
+    case landscapeId of
+        0 ->
+            img [ src "../assets/field.png" ] []
+
+        1 ->
+            img [ src "../assets/forest.png" ] []
+
+        _ ->
+            img [ src "../assets/hill.png" ] []
+
+
+viewLocation : ( Int, Int ) -> World Height -> Html msg
+viewLocation pos worldMap =
     let
         coordinateToString : ( Int, Int ) -> String
         coordinateToString ( lat, lon ) =
             "[" ++ String.fromInt lat ++ "/" ++ String.fromInt lon ++ "]"
     in
-    case getItemFrom2dArray (coordinateOnMap pos) worldMap of
+    case getItemFrom2dArray (coordinateOnMap pos (Array.length worldMap)) worldMap of
         Just landscape ->
-            text ("Location: " ++ landscapeToString landscape ++ " " ++ coordinateToString pos)
+            div
+                [ style "color" "red" ]
+                [ text ("Location: " ++ landscapeToString landscape ++ " " ++ coordinateToString pos) ]
 
         Nothing ->
             text ("N/A " ++ coordinateToString pos)
@@ -334,7 +399,7 @@ stringifyAction action =
 
 
 stringifyResource : LandscapeId -> String
-stringifyResource landscape =
+stringifyResource (LandscapeId landscape) =
     case Array.get landscape landscapes of
         Just l ->
             Tuple.first l

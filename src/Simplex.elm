@@ -6,7 +6,7 @@
 -}
 
 
-module Simplex exposing (simplex2D)
+module Simplex exposing (permutationTable, simplex2D)
 
 import Array exposing (Array)
 import Bitwise
@@ -27,22 +27,22 @@ g2 =
 {-| Generates a noise value between `-1` and `1` based on the given x and y value and a seeded permutation table.
 Using the same permutation table will always return the same result for the same coordinate.
 -}
-simplex2D : ( Int, Int ) -> Seed -> Float
-simplex2D ( x, y ) seed =
+simplex2D : ( PermutationTable, Random.Seed ) -> ( Float, Float ) -> Float
+simplex2D ( { perm, permMod12 }, seed_ ) ( x, y ) =
     let
         skew =
             -- hairy factor for 2D
-            toFloat (x + y) * f2
+            (x + y) * f2
 
         ( i, j ) =
-            ( floor (toFloat x + skew), floor (toFloat y + skew) )
+            ( floor (x + skew), floor (y + skew) )
 
         t =
             toFloat (i + j) * g2
 
         ( x0, y0 ) =
             -- The x,y distances from the cell origin, unskewed.
-            ( toFloat (x - i) + t, toFloat (y - j) + t )
+            ( x - (toFloat i - t), y - (toFloat j - t) )
 
         ( i1, j1 ) =
             cornerOffset2d ( x0, y0 )
@@ -57,9 +57,6 @@ simplex2D ( x, y ) seed =
         ( i2, j2 ) =
             -- Work out the hashed gradient indices of the three simplex corners
             ( Bitwise.and i 255, Bitwise.and j 255 )
-
-        ( { perm, permMod12 }, seed_ ) =
-            permutationTable seed
 
         n0 =
             getN2d x0 y0 i2 j2 perm permMod12
@@ -80,8 +77,8 @@ A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
 A step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
 -}
 cornerOffset2d : ( Float, Float ) -> ( Int, Int )
-cornerOffset2d ( x0, y0 ) =
-    if x0 > y0 then
+cornerOffset2d ( x, y ) =
+    if x > y then
         -- lower triangle, XY order: (0, 0) -> (1, 0) -> (1, 1)
         ( 1, 0 )
 
