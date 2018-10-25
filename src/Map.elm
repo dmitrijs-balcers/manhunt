@@ -36,8 +36,8 @@ type alias Resources a =
     Dict Int (ResourceDict a)
 
 
-type alias LandscapeId =
-    Int
+type LandscapeId
+    = LandscapeId Int
 
 
 type alias ResourceName =
@@ -178,7 +178,7 @@ findSafeInList id list =
 
 
 generateLocationData : Int -> LandscapeId -> Maybe LocationData
-generateLocationData seed landscapeId =
+generateLocationData seed (LandscapeId landscapeId) =
     let
         ( _, landscapeValue ) =
             findSafeInDict landscapeId landscapes
@@ -296,7 +296,7 @@ arrOrEmpty mArr =
 landscapeToString : Height -> String
 landscapeToString height =
     let
-        landscapeId =
+        (LandscapeId landscapeId) =
             heightToLandscapeId height
     in
     case Array.get landscapeId landscapes of
@@ -310,13 +310,13 @@ landscapeToString height =
 heightToLandscapeId : Height -> LandscapeId
 heightToLandscapeId height =
     if height < (0.66 - 1) then
-        0
+        LandscapeId 0
 
     else if height > (0.66 - 1) && height < 0.36 then
-        1
+        LandscapeId 1
 
     else
-        2
+        LandscapeId 2
 
 
 
@@ -351,7 +351,7 @@ viewRow row =
 landscapeToImg : Height -> Html msg
 landscapeToImg height =
     let
-        landscapeId =
+        (LandscapeId landscapeId) =
             heightToLandscapeId height
     in
     case landscapeId of
@@ -405,7 +405,7 @@ stringifyAction action =
 
 
 stringifyResource : LandscapeId -> String
-stringifyResource landscape =
+stringifyResource (LandscapeId landscape) =
     case Array.get landscape landscapes of
         Just l ->
             Tuple.first l
