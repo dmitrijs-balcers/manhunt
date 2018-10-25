@@ -6,7 +6,7 @@ import Dict exposing (Dict)
 import Html exposing (Html, button, div, img, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
-import Map exposing (Action, Height, LocationData, World, generateLocationData, generateWorld, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
+import Map exposing (Action, Amount, Height, LocationData, World, generateLocationData, generateWorld, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
 import Random exposing (initialSeed)
 import Result
 import Simplex exposing (simplex2D)
@@ -72,7 +72,7 @@ update msg model =
                         model.worldData
 
                     else
-                        generateWorld 150 (initialSeed randomNumber)
+                        generateWorld (Map.Size 150) (initialSeed randomNumber)
               }
             , Cmd.none
             )
@@ -91,7 +91,7 @@ performAction model =
         subtract : Maybe LocationData -> Maybe LocationData
         subtract maybeLocationData =
             case maybeLocationData of
-                Just ( ( resource, action ), amount ) ->
+                Just ( ( resource, action ), Map.Amount amount ) ->
                     let
                         newAmount : Int
                         newAmount =
@@ -101,7 +101,7 @@ performAction model =
                         Nothing
 
                     else
-                        Just ( ( resource, action ), newAmount )
+                        Just ( ( resource, action ), Map.Amount newAmount )
 
                 Nothing ->
                     maybeLocationData

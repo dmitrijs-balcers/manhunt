@@ -1,7 +1,9 @@
 module Map exposing
     ( Action
+    , Amount(..)
     , Height
     , LocationData
+    , Size(..)
     , World
     , generateLocationData
     , generateWorld
@@ -24,6 +26,30 @@ import Set exposing (Set)
 import Simplex
 
 
+type LandscapeId
+    = LandscapeId Int
+
+
+type ResourceName
+    = ResourceName String
+
+
+type Rarity
+    = Rarity Float
+
+
+type Amount
+    = Amount Int
+
+
+type Height
+    = Height Float
+
+
+type Size
+    = Size Int
+
+
 type alias World a =
     Array (Array a)
 
@@ -36,36 +62,8 @@ type alias Resources a =
     Dict Int (ResourceDict a)
 
 
-type LandscapeId
-    = LandscapeId Int
-
-
-type alias ResourceName =
-    String
-
-
-type alias Rarity =
-    Float
-
-
-type alias MaxAmount =
-    Amount
-
-
 type alias Resource =
-    ( String, Rarity, MaxAmount )
-
-
-type alias Amount =
-    Int
-
-
-type alias Height =
-    Float
-
-
-type alias Size =
-    Int
+    ( ResourceName, Rarity, Amount )
 
 
 type alias LocationData =
@@ -75,45 +73,45 @@ type alias LocationData =
 woodResources : ResourceDict Resource
 woodResources =
     Array.fromList
-        [ ( "Oak", 0.1, 10 )
-        , ( "Elm", 0.25, 10 )
-        , ( "Birch", 0.5, 10 )
-        , ( "Willow", 0.3, 10 )
+        [ ( ResourceName "Oak", Rarity 0.1, Amount 10 )
+        , ( ResourceName "Elm", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Birch", Rarity 0.5, Amount 10 )
+        , ( ResourceName "Willow", Rarity 0.3, Amount 10 )
         ]
 
 
 rockResources : ResourceDict Resource
 rockResources =
     Array.fromList
-        [ ( "Steel", 0.25, 10 )
-        , ( "Bronze", 0.25, 10 )
-        , ( "Stone", 0.25, 10 )
-        , ( "Gold", 0.001, 2 )
+        [ ( ResourceName "Steel", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Bronze", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Stone", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Gold", Rarity 0.001, Amount 2 )
         ]
 
 
 flowers : ResourceDict Resource
 flowers =
     Array.fromList
-        [ ( "Buttercup", 0.25, 10 )
-        , ( "Daffodil", 0.25, 10 )
-        , ( "Tulip", 0.25, 10 )
-        , ( "CommonDaisy", 0.25, 10 )
+        [ ( ResourceName "Buttercup", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Daffodil", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Tulip", Rarity 0.25, Amount 10 )
+        , ( ResourceName "CommonDaisy", Rarity 0.25, Amount 10 )
         ]
 
 
 mushrooms : ResourceDict Resource
 mushrooms =
     Array.fromList
-        [ ( "Shiitake", 0.25, 10 )
-        , ( "Chanterelle", 0.25, 10 )
-        , ( "Agaricus", 0.25, 10 )
-        , ( "Enoki", 0.25, 10 )
+        [ ( ResourceName "Shiitake", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Chanterelle", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Agaricus", Rarity 0.25, Amount 10 )
+        , ( ResourceName "Enoki", Rarity 0.25, Amount 10 )
         ]
 
 
 generateWorld : Size -> Seed -> World Height
-generateWorld size seed =
+generateWorld (Size size) seed =
     let
         smoothFactor =
             0.01
@@ -129,7 +127,7 @@ generateWorld size seed =
                         floatPoint =
                             ( toFloat x * smoothFactor, toFloat y * smoothFactor )
                     in
-                    Simplex.simplex2D permutationTable floatPoint
+                    Height (Simplex.simplex2D permutationTable floatPoint)
                 )
         )
 
@@ -196,7 +194,7 @@ generateLocationData seed (LandscapeId landscapeId) =
         resource =
             findSafeInDict resourceId landscapeResources
 
-        ( resourceName, chanceToFind, maxAmount ) =
+        ( resourceName, Rarity rarity, Amount maxAmount ) =
             resource
 
         ( amount, amountSeed ) =
@@ -205,8 +203,8 @@ generateLocationData seed (LandscapeId landscapeId) =
         ( luck, luckSeed ) =
             rollDice amountSeed
     in
-    if amount > 0 && succeed luck chanceToFind then
-        Just ( ( resource, landscapeAction ), amount )
+    if amount > 0 && succeed luck rarity then
+        Just ( ( resource, landscapeAction ), Amount amount )
 
     else
         Debug.log ("Didn't find " ++ Debug.toString resource ++ "with amount#" ++ String.fromInt amount ++ " and luck#" ++ String.fromFloat luck) Nothing
@@ -225,14 +223,10 @@ succeed rolledLuck chanceNeededToSucceed =
 stringifyLocationData : LocationData -> String
 stringifyLocationData locationData =
     let
-        resource : Resource
-        resource =
-            locationData |> Tuple.first |> Tuple.first
-
-        ( name, _, _ ) =
-            resource
+        ( ( ( ResourceName name, _, _ ), action ), Amount amount ) =
+            locationData
     in
-    name ++ " " ++ (Tuple.second locationData |> String.fromInt)
+    name ++ " " ++ String.fromInt amount
 
 
 getItemFrom2dArray : ( Int, Int ) -> World a -> Maybe a
@@ -308,7 +302,7 @@ landscapeToString height =
 
 
 heightToLandscapeId : Height -> LandscapeId
-heightToLandscapeId height =
+heightToLandscapeId (Height height) =
     if height < (0.66 - 1) then
         LandscapeId 0
 
