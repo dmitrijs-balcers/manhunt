@@ -3,7 +3,8 @@ module Manhunt exposing (Model, main)
 import Array exposing (Array)
 import Browser exposing (sandbox)
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, img, text)
+import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
 import Map exposing (Action, Height, LocationData, World, generateLocationData, generateWorld, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
 import Random exposing (initialSeed)
@@ -71,7 +72,7 @@ update msg model =
                         model.worldData
 
                     else
-                        generateWorld 100 (initialSeed randomNumber)
+                        generateWorld 150 (initialSeed randomNumber)
               }
             , Cmd.none
             )

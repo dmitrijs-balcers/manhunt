@@ -16,8 +16,8 @@ module Map exposing
 import Array exposing (Array)
 import Debug
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, text)
-import Html.Attributes exposing (style)
+import Html exposing (Html, button, div, img, text)
+import Html.Attributes exposing (src, style)
 import Html.Events exposing (onClick)
 import Random exposing (Seed, initialSeed, step)
 import Set exposing (Set)
@@ -88,7 +88,7 @@ rockResources =
         [ ( "Steel", 0.25, 10 )
         , ( "Bronze", 0.25, 10 )
         , ( "Stone", 0.25, 10 )
-        , ( "Gold", 0.25, 10 )
+        , ( "Gold", 0.001, 2 )
         ]
 
 
@@ -116,7 +116,7 @@ generateWorld : Size -> Seed -> World Height
 generateWorld size seed =
     let
         smoothFactor =
-            0.2
+            0.01
 
         permutationTable =
             Simplex.permutationTable seed
@@ -312,7 +312,7 @@ heightToLandscapeId height =
     if height < (0.66 - 1) then
         0
 
-    else if height > (0.66 - 1) && height < 0.66 then
+    else if height > (0.66 - 1) && height < 0.36 then
         1
 
     else
@@ -329,21 +329,40 @@ viewMap ( lat, lon ) worldMap =
         mapCoord =
             coordinateOnMap ( lat, lon ) (Array.length worldMap)
     in
-    div [] (Array.toList (Array.map viewRow (generateMiniMap mapCoord 3 worldMap)))
+    div [] (Array.toList (Array.map viewRow (generateMiniMap mapCoord 10 worldMap)))
 
 
 viewRow : Array Height -> Html msg
 viewRow row =
     div
-        [ style "display" "block" ]
+        [ style "display" "block"
+        , style "height" "32px"
+        ]
         (Array.toList row
             |> List.map
                 (\h ->
                     div
                         [ style "display" "inline-block" ]
-                        [ text (landscapeToString h) ]
+                        [ landscapeToImg h ]
                 )
         )
+
+
+landscapeToImg : Height -> Html msg
+landscapeToImg height =
+    let
+        landscapeId =
+            heightToLandscapeId height
+    in
+    case landscapeId of
+        0 ->
+            img [ src "../assets/field.png" ] []
+
+        1 ->
+            img [ src "../assets/forest.png" ] []
+
+        _ ->
+            img [ src "../assets/hill.png" ] []
 
 
 viewLocation : ( Int, Int ) -> World Height -> Html msg
