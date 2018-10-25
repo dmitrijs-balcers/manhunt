@@ -71,7 +71,7 @@ update msg model =
                         model.worldData
 
                     else
-                        generateWorld 30 (initialSeed randomNumber)
+                        generateWorld 100 (initialSeed randomNumber)
               }
             , Cmd.none
             )

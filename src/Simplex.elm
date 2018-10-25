@@ -6,7 +6,7 @@
 -}
 
 
-module Simplex exposing (simplex2D)
+module Simplex exposing (permutationTable, simplex2D)
 
 import Array exposing (Array)
 import Bitwise
@@ -27,8 +27,8 @@ g2 =
 {-| Generates a noise value between `-1` and `1` based on the given x and y value and a seeded permutation table.
 Using the same permutation table will always return the same result for the same coordinate.
 -}
-simplex2D : ( Float, Float ) -> Seed -> Float
-simplex2D ( x, y ) seed =
+simplex2D : ( PermutationTable, Random.Seed ) -> ( Float, Float ) -> Float
+simplex2D ( { perm, permMod12 }, seed_ ) ( x, y ) =
     let
         skew =
             -- hairy factor for 2D
@@ -57,9 +57,6 @@ simplex2D ( x, y ) seed =
         ( i2, j2 ) =
             -- Work out the hashed gradient indices of the three simplex corners
             ( Bitwise.and i 255, Bitwise.and j 255 )
-
-        ( { perm, permMod12 }, seed_ ) =
-            permutationTable seed
 
         n0 =
             getN2d x0 y0 i2 j2 perm permMod12

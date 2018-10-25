@@ -117,12 +117,19 @@ generateWorld size seed =
     let
         smoothFactor =
             0.2
+
+        permutationTable =
+            Simplex.permutationTable seed
     in
     Array.initialize size
         (\x ->
             Array.initialize size
                 (\y ->
-                    Simplex.simplex2D ( toFloat x * smoothFactor, toFloat y * smoothFactor ) seed
+                    let
+                        floatPoint =
+                            ( toFloat x * smoothFactor, toFloat y * smoothFactor )
+                    in
+                    Simplex.simplex2D permutationTable floatPoint
                 )
         )
 
@@ -146,7 +153,7 @@ landscapes =
     Array.fromList
         [ ( "Field", [ ( Pluck, flowers ) ] )
         , ( "Forest", [ ( Chop, woodResources ), ( Pluck, mushrooms ) ] )
-        , ( "Rock", [ ( Mine, rockResources ) ] )
+        , ( "Hill", [ ( Mine, rockResources ) ] )
         ]
 
 
