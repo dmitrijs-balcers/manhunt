@@ -7,7 +7,7 @@ import Html exposing (Html, button, div, img, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
 import Map exposing (Action, Amount, Height, LocationData, World, generateLocationData, generateWorld, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
-import Random exposing (initialSeed)
+import Random exposing (Seed, initialSeed)
 import Result
 import Simplex exposing (simplex2D)
 
@@ -24,6 +24,7 @@ type alias Model =
     { playerPosition : PlayerPosition
     , locationsData : LocationsData
     , worldData : World Height
+    , worldSeed : Seed
     }
 
 
@@ -49,6 +50,7 @@ initialModel =
     { playerPosition = { lat = 0, lon = 0 }
     , locationsData = Dict.empty
     , worldData = Array.empty
+    , worldSeed = initialSeed 0
     }
 
 
@@ -60,20 +62,33 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Move direction ->
-            ( { model | playerPosition = updatePlayerPosition model.playerPosition direction }
-            , Random.generate GenerateWorld (Random.int 1 6000)
+            let
+                ( _, seed ) =
+                    Random.step (Random.int 1 6000) model.worldSeed
+            in
+            ( { model
+                | worldSeed = seed
+                , playerPosition = updatePlayerPosition model.playerPosition direction
+              }
+                |> (\m -> { m | locationsData = refreshLocation m })
+            , Cmd.none
             )
 
         GenerateWorld randomNumber ->
+            let
+                worldSeed =
+                    initialSeed randomNumber
+            in
             ( { model
-                | locationsData = refreshLocation randomNumber model
+                | worldSeed = worldSeed
                 , worldData =
                     if Array.length model.worldData > 0 then
                         model.worldData
 
                     else
-                        generateWorld (Map.Size 150) (initialSeed randomNumber)
+                        generateWorld (Map.Size 150) worldSeed
               }
+                |> (\m -> { m | locationsData = refreshLocation m })
             , Cmd.none
             )
 
@@ -125,8 +140,8 @@ updatePlayerPosition playerPosition direction =
             { playerPosition | lat = playerPosition.lat - 1 }
 
 
-refreshLocation : Int -> Model -> LocationsData
-refreshLocation seed model =
+refreshLocation : Model -> LocationsData
+refreshLocation model =
     let
         position : PlayerCoordinate
         position =
@@ -150,7 +165,7 @@ refreshLocation seed model =
                     let
                         generatedLocationData : Maybe LocationData
                         generatedLocationData =
-                            generateLocationData seed landscape
+                            generateLocationData model.worldSeed landscape
                     in
                     case generatedLocationData of
                         Just ld ->
