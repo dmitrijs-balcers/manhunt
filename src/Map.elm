@@ -59,8 +59,8 @@ type Resources a
     = Resources (Array a)
 
 
-type alias Resource =
-    ( ResourceName, Rarity, Amount )
+type Resource
+    = Resource ( ResourceName, Rarity, Amount )
 
 
 type alias LocationData =
@@ -71,10 +71,10 @@ woodResources : Resources Resource
 woodResources =
     Resources
         (Array.fromList
-            [ ( ResourceName "Oak", Rarity 0.1, Amount 10 )
-            , ( ResourceName "Elm", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Birch", Rarity 0.5, Amount 10 )
-            , ( ResourceName "Willow", Rarity 0.3, Amount 10 )
+            [ Resource ( ResourceName "Oak", Rarity 0.1, Amount 10 )
+            , Resource ( ResourceName "Elm", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Birch", Rarity 0.5, Amount 10 )
+            , Resource ( ResourceName "Willow", Rarity 0.3, Amount 10 )
             ]
         )
 
@@ -83,10 +83,10 @@ rockResources : Resources Resource
 rockResources =
     Resources
         (Array.fromList
-            [ ( ResourceName "Steel", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Bronze", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Stone", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Gold", Rarity 0.001, Amount 2 )
+            [ Resource ( ResourceName "Steel", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Bronze", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Stone", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Gold", Rarity 0.001, Amount 2 )
             ]
         )
 
@@ -95,10 +95,10 @@ flowers : Resources Resource
 flowers =
     Resources
         (Array.fromList
-            [ ( ResourceName "Buttercup", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Daffodil", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Tulip", Rarity 0.25, Amount 10 )
-            , ( ResourceName "CommonDaisy", Rarity 0.25, Amount 10 )
+            [ Resource ( ResourceName "Buttercup", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Daffodil", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Tulip", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "CommonDaisy", Rarity 0.25, Amount 10 )
             ]
         )
 
@@ -107,10 +107,10 @@ mushrooms : Resources Resource
 mushrooms =
     Resources
         (Array.fromList
-            [ ( ResourceName "Shiitake", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Chanterelle", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Agaricus", Rarity 0.25, Amount 10 )
-            , ( ResourceName "Enoki", Rarity 0.25, Amount 10 )
+            [ Resource ( ResourceName "Shiitake", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Chanterelle", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Agaricus", Rarity 0.25, Amount 10 )
+            , Resource ( ResourceName "Enoki", Rarity 0.25, Amount 10 )
             ]
         )
 
@@ -185,42 +185,77 @@ landscapes =
         )
 
 
-generateLocationData : Seed -> LandscapeId -> Maybe LocationData
-generateLocationData seed (LandscapeId landscapeId) =
+generateLocationData : LandscapeId -> Generator (Maybe LocationData)
+generateLocationData (LandscapeId landscapeId) =
     let
         (Landscapes l) =
             landscapes
 
-        ( _, LandscapeResources landscapeResources ) =
+        ( _, landscapeResources ) =
             findSafeInDict landscapeId l
-
-        ( randomLandscapeResourceTypeId, resourceTypeSeed ) =
-            step (Random.int 0 (List.length landscapeResources - 1)) seed
-
-        (LandscapeResource ( resourceAction, Resources resources )) =
-            findSafeInList randomLandscapeResourceTypeId landscapeResources
-
-        ( resourceId, resourceSeed ) =
-            step (Random.int 0 (Array.length resources - 1)) resourceTypeSeed
-
-        resource : Resource
-        resource =
-            findSafeInDict resourceId resources
-
-        ( resourceName, Rarity rarity, Amount maxAmount ) =
-            resource
-
-        ( amount, amountSeed ) =
-            step (Random.int 0 maxAmount) resourceSeed
-
-        ( luck, luckSeed ) =
-            rollDice amountSeed
     in
-    if amount > 0 && succeed luck rarity then
-        Just ( ( resource, resourceAction ), Amount amount )
+    Random.andThen
+        (\(LandscapeResource ( resourceAction, resources )) ->
+            Random.andThen
+                (\(Resource ( resourceName, Rarity rarity, Amount maxAmount )) ->
+                    Random.andThen
+                        (\( amount, luck ) ->
+                            if amount > 0 && succeed luck rarity then
+                                let
+                                    r =
+                                        ( Resource
+                                            ( resourceName
+                                            , Rarity rarity
+                                            , Amount maxAmount
+                                            )
+                                        , resourceAction
+                                        )
+                                in
+                                Random.constant (Just ( r, Amount amount ))
 
-    else
-        Debug.log ("Didn't find " ++ Debug.toString resource ++ "with amount#" ++ String.fromInt amount ++ " and luck#" ++ String.fromFloat luck) Nothing
+                            else
+                                Random.constant
+                                    (Debug.log
+                                        ("Didn't find "
+                                            ++ Debug.toString resourceName
+                                            ++ "with amount#"
+                                            ++ String.fromInt amount
+                                            ++ " and luck#"
+                                            ++ String.fromFloat luck
+                                        )
+                                        Nothing
+                                    )
+                        )
+                        (Random.pair
+                            (Random.int 0 maxAmount)
+                            (Random.float 0 1)
+                        )
+                )
+                (genRandomResource resources)
+        )
+        (genRandomLandscapeResource landscapeResources)
+
+
+genRandomLandscapeResource : LandscapeResources -> Generator LandscapeResource
+genRandomLandscapeResource (LandscapeResources landscapeResources) =
+    Random.andThen
+        (\id ->
+            Random.constant (findSafeInList id landscapeResources)
+        )
+        (Random.int 0 (List.length landscapeResources - 1))
+
+
+genRandomResource : Resources Resource -> Generator Resource
+genRandomResource resources =
+    let
+        (Resources r) =
+            resources
+    in
+    Random.andThen
+        (\resourceId ->
+            Random.constant (findSafeInDict resourceId r)
+        )
+        (Random.int 0 (Array.length r - 1))
 
 
 rollDice : Seed -> ( Float, Seed )
@@ -236,7 +271,7 @@ succeed rolledLuck chanceNeededToSucceed =
 stringifyLocationData : LocationData -> String
 stringifyLocationData locationData =
     let
-        ( ( ( ResourceName name, _, _ ), action ), Amount amount ) =
+        ( ( Resource ( ResourceName name, _, _ ), action ), Amount amount ) =
             locationData
     in
     name ++ " " ++ String.fromInt amount

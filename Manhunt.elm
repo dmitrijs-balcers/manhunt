@@ -165,7 +165,7 @@ refreshLocation model =
                     let
                         generatedLocationData : Maybe LocationData
                         generatedLocationData =
-                            generateLocationData model.worldSeed landscape
+                            Tuple.first (Random.step (generateLocationData landscape) model.worldSeed)
                     in
                     case generatedLocationData of
                         Just ld ->
