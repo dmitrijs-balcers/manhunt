@@ -21,7 +21,8 @@ import Dict exposing (Dict)
 import Html exposing (Html, button, div, img, text)
 import Html.Attributes exposing (src, style)
 import Html.Events exposing (onClick)
-import Random exposing (Seed, initialSeed, step)
+import Random exposing (Generator, Seed, initialSeed, step)
+import SafeUtils exposing (findSafeInDict, findSafeInList)
 import Set exposing (Set)
 import Simplex
 
@@ -54,12 +55,8 @@ type alias World a =
     Array (Array a)
 
 
-type alias ResourceDict a =
-    Array a
-
-
-type alias Resources a =
-    Dict Int (ResourceDict a)
+type Resources a
+    = Resources (Array a)
 
 
 type alias Resource =
@@ -70,44 +67,52 @@ type alias LocationData =
     ( ( Resource, Action ), Amount )
 
 
-woodResources : ResourceDict Resource
+woodResources : Resources Resource
 woodResources =
-    Array.fromList
-        [ ( ResourceName "Oak", Rarity 0.1, Amount 10 )
-        , ( ResourceName "Elm", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Birch", Rarity 0.5, Amount 10 )
-        , ( ResourceName "Willow", Rarity 0.3, Amount 10 )
-        ]
+    Resources
+        (Array.fromList
+            [ ( ResourceName "Oak", Rarity 0.1, Amount 10 )
+            , ( ResourceName "Elm", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Birch", Rarity 0.5, Amount 10 )
+            , ( ResourceName "Willow", Rarity 0.3, Amount 10 )
+            ]
+        )
 
 
-rockResources : ResourceDict Resource
+rockResources : Resources Resource
 rockResources =
-    Array.fromList
-        [ ( ResourceName "Steel", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Bronze", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Stone", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Gold", Rarity 0.001, Amount 2 )
-        ]
+    Resources
+        (Array.fromList
+            [ ( ResourceName "Steel", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Bronze", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Stone", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Gold", Rarity 0.001, Amount 2 )
+            ]
+        )
 
 
-flowers : ResourceDict Resource
+flowers : Resources Resource
 flowers =
-    Array.fromList
-        [ ( ResourceName "Buttercup", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Daffodil", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Tulip", Rarity 0.25, Amount 10 )
-        , ( ResourceName "CommonDaisy", Rarity 0.25, Amount 10 )
-        ]
+    Resources
+        (Array.fromList
+            [ ( ResourceName "Buttercup", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Daffodil", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Tulip", Rarity 0.25, Amount 10 )
+            , ( ResourceName "CommonDaisy", Rarity 0.25, Amount 10 )
+            ]
+        )
 
 
-mushrooms : ResourceDict Resource
+mushrooms : Resources Resource
 mushrooms =
-    Array.fromList
-        [ ( ResourceName "Shiitake", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Chanterelle", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Agaricus", Rarity 0.25, Amount 10 )
-        , ( ResourceName "Enoki", Rarity 0.25, Amount 10 )
-        ]
+    Resources
+        (Array.fromList
+            [ ( ResourceName "Shiitake", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Chanterelle", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Agaricus", Rarity 0.25, Amount 10 )
+            , ( ResourceName "Enoki", Rarity 0.25, Amount 10 )
+            ]
+        )
 
 
 generateWorld : Size -> Seed -> World Height
@@ -138,61 +143,69 @@ type Action
     | Chop
 
 
-type alias LandscapeResources =
-    List ( Action, ResourceDict Resource )
+type LandscapeResource
+    = LandscapeResource ( Action, Resources Resource )
 
 
-type alias LandscapeName =
-    String
+type LandscapeResources
+    = LandscapeResources (List LandscapeResource)
 
 
-landscapes : Array ( LandscapeName, LandscapeResources )
+type LandscapeName
+    = LandscapeName String
+
+
+type alias Landscape =
+    ( LandscapeName, LandscapeResources )
+
+
+type Landscapes
+    = Landscapes (Array Landscape)
+
+
+landscapes : Landscapes
 landscapes =
-    Array.fromList
-        [ ( "Field", [ ( Pluck, flowers ) ] )
-        , ( "Forest", [ ( Chop, woodResources ), ( Pluck, mushrooms ) ] )
-        , ( "Hill", [ ( Mine, rockResources ) ] )
-        ]
-
-
-findSafeInDict : Int -> ResourceDict a -> a
-findSafeInDict id dict =
-    case Array.get id dict of
-        Just res ->
-            res
-
-        Nothing ->
-            Debug.todo ("Didn't find " ++ String.fromInt id ++ " in " ++ Debug.toString dict)
-
-
-findSafeInList : Int -> List a -> a
-findSafeInList id list =
-    case Array.fromList list |> Array.get id of
-        Just el ->
-            el
-
-        Nothing ->
-            Debug.todo ("Didn't find " ++ String.fromInt id ++ " in " ++ Debug.toString list)
+    Landscapes
+        (Array.fromList
+            [ ( LandscapeName "Field"
+              , LandscapeResources
+                    [ LandscapeResource ( Pluck, flowers ) ]
+              )
+            , ( LandscapeName "Forest"
+              , LandscapeResources
+                    [ LandscapeResource ( Chop, woodResources )
+                    , LandscapeResource ( Pluck, mushrooms )
+                    ]
+              )
+            , ( LandscapeName "Hill"
+              , LandscapeResources
+                    [ LandscapeResource ( Mine, rockResources ) ]
+              )
+            ]
+        )
 
 
 generateLocationData : Seed -> LandscapeId -> Maybe LocationData
 generateLocationData seed (LandscapeId landscapeId) =
     let
-        ( _, landscapeValue ) =
-            findSafeInDict landscapeId landscapes
+        (Landscapes l) =
+            landscapes
+
+        ( _, LandscapeResources landscapeResources ) =
+            findSafeInDict landscapeId l
 
         ( randomLandscapeResourceTypeId, resourceTypeSeed ) =
-            step (Random.int 0 (List.length landscapeValue - 1)) seed
+            step (Random.int 0 (List.length landscapeResources - 1)) seed
 
-        ( landscapeAction, landscapeResources ) =
-            findSafeInList randomLandscapeResourceTypeId landscapeValue
+        (LandscapeResource ( resourceAction, Resources resources )) =
+            findSafeInList randomLandscapeResourceTypeId landscapeResources
 
         ( resourceId, resourceSeed ) =
-            step (Random.int 0 (Array.length landscapeResources - 1)) resourceTypeSeed
+            step (Random.int 0 (Array.length resources - 1)) resourceTypeSeed
 
         resource : Resource
         resource =
-            findSafeInDict resourceId landscapeResources
+            findSafeInDict resourceId resources
 
         ( resourceName, Rarity rarity, Amount maxAmount ) =
             resource
@@ -204,7 +217,7 @@ generateLocationData seed (LandscapeId landscapeId) =
             rollDice amountSeed
     in
     if amount > 0 && succeed luck rarity then
-        Just ( ( resource, landscapeAction ), Amount amount )
+        Just ( ( resource, resourceAction ), Amount amount )
 
     else
         Debug.log ("Didn't find " ++ Debug.toString resource ++ "with amount#" ++ String.fromInt amount ++ " and luck#" ++ String.fromFloat luck) Nothing
@@ -292,10 +305,13 @@ landscapeToString height =
     let
         (LandscapeId landscapeId) =
             heightToLandscapeId height
+
+        (Landscapes l) =
+            landscapes
     in
-    case Array.get landscapeId landscapes of
-        Just l ->
-            Tuple.first l
+    case Array.get landscapeId l of
+        Just ( LandscapeName name, res ) ->
+            name
 
         Nothing ->
             Debug.todo "Not landscape found :/"
@@ -400,9 +416,13 @@ stringifyAction action =
 
 stringifyResource : LandscapeId -> String
 stringifyResource (LandscapeId landscape) =
-    case Array.get landscape landscapes of
-        Just l ->
-            Tuple.first l
+    let
+        (Landscapes l) =
+            landscapes
+    in
+    case Array.get landscape l of
+        Just ( LandscapeName name, _ ) ->
+            name
 
         Nothing ->
             Debug.todo "No Landscape Found"
