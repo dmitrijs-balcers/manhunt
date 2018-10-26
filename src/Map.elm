@@ -175,14 +175,14 @@ findSafeInList id list =
             Debug.todo ("Didn't find " ++ String.fromInt id ++ " in " ++ Debug.toString list)
 
 
-generateLocationData : Int -> LandscapeId -> Maybe LocationData
+generateLocationData : Seed -> LandscapeId -> Maybe LocationData
 generateLocationData seed (LandscapeId landscapeId) =
     let
         ( _, landscapeValue ) =
             findSafeInDict landscapeId landscapes
 
         ( randomLandscapeResourceTypeId, resourceTypeSeed ) =
-            step (Random.int 0 (List.length landscapeValue - 1)) (initialSeed seed)
+            step (Random.int 0 (List.length landscapeValue - 1)) seed
 
         ( landscapeAction, landscapeResources ) =
             findSafeInList randomLandscapeResourceTypeId landscapeValue
