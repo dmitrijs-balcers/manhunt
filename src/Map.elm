@@ -201,7 +201,7 @@ generateLocationData (LandscapeId landscapeId) =
                     |> Random.andThen
                         (\(Resource ( ResourceName resourceName, Rarity rarity, maxAmount )) ->
                             genAmountChance maxAmount
-                                |> Random.andThen
+                                |> Random.map
                                     (\( amount, luck ) ->
                                         if amount > 0 && succeed luck rarity then
                                             let
@@ -210,14 +210,12 @@ generateLocationData (LandscapeId landscapeId) =
                                                     , resourceAction
                                                     )
                                             in
-                                            Random.constant (Just ( r, Amount amount ))
+                                            Just ( r, Amount amount )
 
                                         else
-                                            Random.constant
-                                                (Debug.log
-                                                    (stringifyLandscapeFailure resourceName amount luck)
-                                                    Nothing
-                                                )
+                                            Debug.log
+                                                (stringifyLandscapeFailure resourceName amount luck)
+                                                Nothing
                                     )
                         )
             )
@@ -225,24 +223,14 @@ generateLocationData (LandscapeId landscapeId) =
 
 genRandomLandscapeResource : LandscapeResources -> Generator LandscapeResource
 genRandomLandscapeResource (LandscapeResources landscapeResources) =
-    Random.andThen
-        (\id ->
-            Random.constant (findSafeInList id landscapeResources)
-        )
-        (Random.int 0 (List.length landscapeResources - 1))
+    Random.int 0 (List.length landscapeResources - 1)
+        |> Random.map (\id -> findSafeInList id landscapeResources)
 
 
 genRandomResource : Resources Resource -> Generator Resource
-genRandomResource resources =
-    let
-        (Resources r) =
-            resources
-    in
-    Random.andThen
-        (\resourceId ->
-            Random.constant (findSafeInDict resourceId r)
-        )
-        (Random.int 0 (Array.length r - 1))
+genRandomResource (Resources resources) =
+    Random.int 0 (Array.length resources - 1)
+        |> Random.map (\resourceId -> findSafeInDict resourceId resources)
 
 
 genAmountChance : Amount -> Generator ( Int, Float )
