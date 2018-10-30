@@ -27,6 +27,8 @@ import Set exposing (Set)
 import Simplex
 
 
+{-| encapsulate this using function <https://egghead.io/lessons/elm-use-single-constructor-union-types-in-elm-to-prevent-invalid-data>
+-}
 type LandscapeId
     = LandscapeId Int
 
@@ -161,6 +163,10 @@ type alias Landscape =
 
 type Landscapes
     = Landscapes (Array Landscape)
+
+
+type Visibility
+    = Visibility Int
 
 
 landscapes : Landscapes
@@ -298,25 +304,6 @@ getLandscape position worldMap =
             Nothing
 
 
-generateMiniMap : ( Int, Int ) -> Int -> World a -> World a
-generateMiniMap ( lat, lon ) visibility arr =
-    let
-        ( latRange, ( lonFrom, lonTo ) ) =
-            ( ( lat - visibility, lat + 1 + visibility )
-            , ( lon - visibility, lon + visibility )
-            )
-
-        arrayOfHeight =
-            Array.initialize (lonTo - lonFrom) (\n -> lonFrom + n)
-    in
-    Array.map (\n -> cutRow latRange (arrOrEmpty (Array.get n arr))) arrayOfHeight
-
-
-cutRow : ( Int, Int ) -> Array a -> Array a
-cutRow ( latFrom, latTo ) row =
-    Array.slice latFrom latTo row
-
-
 arrOrEmpty : Maybe (Array a) -> Array a
 arrOrEmpty mArr =
     Maybe.withDefault Array.empty mArr
@@ -358,26 +345,69 @@ heightToLandscapeId (Height height) =
 viewMap : ( Int, Int ) -> World Height -> Html msg
 viewMap ( lat, lon ) worldMap =
     let
-        mapCoord =
+        coordinate =
             coordinateOnMap ( lat, lon ) (Array.length worldMap)
+
+        visibility =
+            Visibility 5
     in
-    div [] (Array.toList (Array.map viewRow (generateMiniMap mapCoord 10 worldMap)))
+    generateMiniMap coordinate visibility worldMap
+        |> Array.indexedMap (viewRow 5)
+        |> Array.toList
+        |> div []
 
 
-viewRow : Array Height -> Html msg
-viewRow row =
+generateMiniMap : ( Int, Int ) -> Visibility -> World a -> World a
+generateMiniMap ( lat, lon ) (Visibility visibility) world =
+    let
+        ( latRange, ( lonFrom, lonTo ) ) =
+            ( ( lat - visibility, lat + 1 + visibility )
+            , ( lon - visibility, lon + 1 + visibility )
+            )
+
+        arrayOfHeight =
+            Array.initialize (lonTo - lonFrom) (\n -> lonFrom + n)
+    in
+    Array.map (mapRow latRange world) arrayOfHeight
+
+
+mapRow : ( Int, Int ) -> World a -> Int -> Array a
+mapRow latRange world rowIndex =
+    cutRow latRange (arrOrEmpty (Array.get rowIndex world))
+
+
+cutRow : ( Int, Int ) -> Array a -> Array a
+cutRow ( latFrom, latTo ) row =
+    Array.slice latFrom latTo row
+
+
+viewRow : Int -> Int -> Array Height -> Html msg
+viewRow middle rowIndex row =
     div
         [ style "display" "block"
         , style "height" "32px"
         ]
         (Array.toList row
-            |> List.map
-                (\h ->
-                    div
-                        [ style "display" "inline-block" ]
-                        [ landscapeToImg h ]
-                )
+            |> List.indexedMap (viewColumn { middle = middle, rowIndex = rowIndex })
         )
+
+
+viewColumn : { middle : Int, rowIndex : Int } -> Int -> Height -> Html msg
+viewColumn { middle, rowIndex } columnIndex height =
+    let
+        inversionStyle : Html.Attribute msg
+        inversionStyle =
+            if middle == rowIndex && middle == columnIndex then
+                style "filter" "invert(100%)"
+
+            else
+                style "filter" "invert(0%)"
+    in
+    div
+        [ style "display" "inline-block"
+        , inversionStyle
+        ]
+        [ landscapeToImg height ]
 
 
 landscapeToImg : Height -> Html msg

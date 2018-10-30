@@ -205,8 +205,8 @@ view model =
     div []
         [ viewLocation playerCoordinate model.worldData
         , viewMoveControls
-        , viewResource locationData
         , viewMap playerCoordinate model.worldData
+        , viewResource locationData
         ]
 
 
