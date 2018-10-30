@@ -194,46 +194,33 @@ generateLocationData (LandscapeId landscapeId) =
         ( _, landscapeResources ) =
             findSafeInDict landscapeId l
     in
-    Random.andThen
-        (\(LandscapeResource ( resourceAction, resources )) ->
-            Random.andThen
-                (\(Resource ( resourceName, Rarity rarity, Amount maxAmount )) ->
-                    Random.andThen
-                        (\( amount, luck ) ->
-                            if amount > 0 && succeed luck rarity then
-                                let
-                                    r =
-                                        ( Resource
-                                            ( resourceName
-                                            , Rarity rarity
-                                            , Amount maxAmount
-                                            )
-                                        , resourceAction
-                                        )
-                                in
-                                Random.constant (Just ( r, Amount amount ))
+    genRandomLandscapeResource landscapeResources
+        |> Random.andThen
+            (\(LandscapeResource ( resourceAction, resources )) ->
+                genRandomResource resources
+                    |> Random.andThen
+                        (\(Resource ( ResourceName resourceName, Rarity rarity, maxAmount )) ->
+                            genAmountChance maxAmount
+                                |> Random.andThen
+                                    (\( amount, luck ) ->
+                                        if amount > 0 && succeed luck rarity then
+                                            let
+                                                r =
+                                                    ( Resource ( ResourceName resourceName, Rarity rarity, maxAmount )
+                                                    , resourceAction
+                                                    )
+                                            in
+                                            Random.constant (Just ( r, Amount amount ))
 
-                            else
-                                Random.constant
-                                    (Debug.log
-                                        ("Didn't find "
-                                            ++ Debug.toString resourceName
-                                            ++ "with amount#"
-                                            ++ String.fromInt amount
-                                            ++ " and luck#"
-                                            ++ String.fromFloat luck
-                                        )
-                                        Nothing
+                                        else
+                                            Random.constant
+                                                (Debug.log
+                                                    (stringifyLandscapeFailure resourceName amount luck)
+                                                    Nothing
+                                                )
                                     )
                         )
-                        (Random.pair
-                            (Random.int 0 maxAmount)
-                            (Random.float 0 1)
-                        )
-                )
-                (genRandomResource resources)
-        )
-        (genRandomLandscapeResource landscapeResources)
+            )
 
 
 genRandomLandscapeResource : LandscapeResources -> Generator LandscapeResource
@@ -258,14 +245,26 @@ genRandomResource resources =
         (Random.int 0 (Array.length r - 1))
 
 
-rollDice : Seed -> ( Float, Seed )
-rollDice seed =
-    step (Random.float 0 1) seed
+genAmountChance : Amount -> Generator ( Int, Float )
+genAmountChance (Amount maxAmount) =
+    Random.pair
+        (Random.int 0 maxAmount)
+        (Random.float 0 1)
 
 
 succeed : Float -> Float -> Bool
 succeed rolledLuck chanceNeededToSucceed =
     rolledLuck > chanceNeededToSucceed
+
+
+stringifyLandscapeFailure : String -> Int -> Float -> String
+stringifyLandscapeFailure resourceName amount luck =
+    "Didn't find "
+        ++ resourceName
+        ++ "with amount#"
+        ++ String.fromInt amount
+        ++ " and luck#"
+        ++ String.fromFloat luck
 
 
 stringifyLocationData : LocationData -> String
