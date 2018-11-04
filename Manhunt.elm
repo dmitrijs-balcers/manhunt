@@ -3,7 +3,7 @@ module Manhunt exposing (Model, main)
 import Array exposing (Array)
 import Browser exposing (sandbox)
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, img, text)
+import Html exposing (Html, button, div, h4, h5, img, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
 import Map exposing (Action, Amount, Height, LocationData, World, generateLocationData, generateWorld, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
@@ -20,8 +20,14 @@ type alias LocationsData =
     Dict PlayerCoordinate LocationData
 
 
+type alias Player =
+    { position : PlayerPosition
+    , items : List Map.Resource
+    }
+
+
 type alias Model =
-    { playerPosition : PlayerPosition
+    { player : Player
     , locationsData : LocationsData
     , worldData : World Height
     , worldSeed : Seed
@@ -47,7 +53,13 @@ type alias PlayerCoordinate =
 
 initialModel : Model
 initialModel =
-    { playerPosition = { lat = 0, lon = 0 }
+    { player =
+        { position = { lat = 0, lon = 0 }
+        , items =
+            [ Map.Resource ( Map.ResourceName "Oak", Map.Rarity 0.1 )
+            , Map.Resource ( Map.ResourceName "Birch", Map.Rarity 0.5 )
+            ]
+        }
     , locationsData = Dict.empty
     , worldData = Array.empty
     , worldSeed = initialSeed 0
@@ -68,7 +80,7 @@ update msg model =
             in
             ( { model
                 | worldSeed = seed
-                , playerPosition = updatePlayerPosition model.playerPosition direction
+                , player = updatePlayerPosition model.player direction
               }
                 |> (\m -> { m | locationsData = refreshLocation m })
             , Cmd.none
@@ -93,15 +105,28 @@ update msg model =
             )
 
         Perform action ->
-            ( { model | locationsData = performAction model }, Cmd.none )
+            let
+                ( locationsData, player ) =
+                    performAction model
+            in
+            ( { model
+                | locationsData = locationsData
+                , player = player
+              }
+            , Cmd.none
+            )
 
 
-performAction : Model -> LocationsData
+performAction : Model -> ( LocationsData, Player )
 performAction model =
     let
         position : PlayerCoordinate
         position =
-            ( model.playerPosition.lat, model.playerPosition.lon )
+            ( model.player.position.lat, model.player.position.lon )
+
+        currentLocationData : Maybe LocationData
+        currentLocationData =
+            Dict.get position model.locationsData
 
         subtract : Maybe LocationData -> Maybe LocationData
         subtract maybeLocationData =
@@ -120,24 +145,47 @@ performAction model =
 
                 Nothing ->
                     maybeLocationData
+
+        updateItems : Maybe LocationData -> Player -> Player
+        updateItems maybeLocationData player =
+            case maybeLocationData of
+                Just ( ( resource, _ ), Map.Amount amount ) ->
+                    let
+                        newAmount : Int
+                        newAmount =
+                            amount - 1
+                    in
+                    if newAmount == 0 then
+                        player
+
+                    else
+                        { player | items = resource :: player.items }
+
+                Nothing ->
+                    player
     in
-    Dict.update position subtract model.locationsData
+    ( Dict.update position subtract model.locationsData, updateItems currentLocationData model.player )
 
 
-updatePlayerPosition : PlayerPosition -> Direction -> PlayerPosition
-updatePlayerPosition playerPosition direction =
-    case direction of
-        North ->
-            { playerPosition | lon = playerPosition.lon + 1 }
+updatePlayerPosition : Player -> Direction -> Player
+updatePlayerPosition player direction =
+    let
+        updatePosition : PlayerPosition -> Direction -> PlayerPosition
+        updatePosition position d =
+            case d of
+                North ->
+                    { position | lon = position.lon + 1 }
 
-        South ->
-            { playerPosition | lon = playerPosition.lon - 1 }
+                South ->
+                    { position | lon = position.lon - 1 }
 
-        West ->
-            { playerPosition | lat = playerPosition.lat + 1 }
+                West ->
+                    { position | lat = position.lat + 1 }
 
-        East ->
-            { playerPosition | lat = playerPosition.lat - 1 }
+                East ->
+                    { position | lat = position.lat - 1 }
+    in
+    { player | position = updatePosition player.position direction }
 
 
 refreshLocation : Model -> LocationsData
@@ -145,7 +193,7 @@ refreshLocation model =
     let
         position : PlayerCoordinate
         position =
-            ( model.playerPosition.lat, model.playerPosition.lon )
+            ( model.player.position.lat, model.player.position.lon )
 
         locationData : Maybe LocationData
         locationData =
@@ -192,7 +240,7 @@ view model =
     let
         playerCoordinate : PlayerCoordinate
         playerCoordinate =
-            ( model.playerPosition.lat, model.playerPosition.lon )
+            ( model.player.position.lat, model.player.position.lon )
 
         locationsData : LocationsData
         locationsData =
@@ -207,6 +255,25 @@ view model =
         , viewMoveControls
         , viewMap playerCoordinate model.worldData
         , viewResource locationData
+        , viewPlayerItems model.player
+        ]
+
+
+viewPlayerItems : Player -> Html Msg
+viewPlayerItems player =
+    div []
+        [ h4 [] [ text "Items:" ]
+        , div []
+            (List.map
+                (\(Map.Resource resource) ->
+                    let
+                        ( Map.ResourceName resourceName, _ ) =
+                            resource
+                    in
+                    div [] [ text resourceName ]
+                )
+                player.items
+            )
         ]
 
 
