@@ -8,7 +8,8 @@ import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
 import Map
     exposing
-        ( Amount
+        ( Action(..)
+        , Amount
         , Direction(..)
         , Gather
         , Height
@@ -41,8 +42,7 @@ type alias Model =
 
 
 type Msg
-    = Move Direction
-    | Perform Gather
+    = Perform Action
     | GenerateWorld Int
 
 
@@ -71,18 +71,32 @@ initialModel =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Move direction ->
-            let
-                ( _, seed ) =
-                    Random.step (Random.int 1 6000) model.worldSeed
-            in
-            ( { model
-                | worldSeed = seed
-                , player = updatePlayerPosition model.player direction
-              }
-                |> (\m -> { m | locationsData = refreshLocation m })
-            , Cmd.none
-            )
+        Perform action ->
+            case action of
+                Move direction ->
+                    let
+                        ( _, seed ) =
+                            Random.step (Random.int 1 6000) model.worldSeed
+                    in
+                    ( { model
+                        | worldSeed = seed
+                        , player = updatePlayerPosition model.player direction
+                      }
+                        |> (\m -> { m | locationsData = refreshLocation m })
+                    , Cmd.none
+                    )
+
+                Gather gather ->
+                    let
+                        ( locationsData, player ) =
+                            performAction model
+                    in
+                    ( { model
+                        | locationsData = locationsData
+                        , player = player
+                      }
+                    , Cmd.none
+                    )
 
         GenerateWorld randomNumber ->
             let
@@ -99,18 +113,6 @@ update msg model =
                         generateWorld (Map.Size 150) worldSeed
               }
                 |> (\m -> { m | locationsData = refreshLocation m })
-            , Cmd.none
-            )
-
-        Perform action ->
-            let
-                ( locationsData, player ) =
-                    performAction model
-            in
-            ( { model
-                | locationsData = locationsData
-                , player = player
-              }
             , Cmd.none
             )
 
@@ -252,10 +254,10 @@ viewResource maybeLocationData =
 viewMoveControls : Html Msg
 viewMoveControls =
     div []
-        [ button [ onClick (Move North) ] [ text "N" ]
-        , button [ onClick (Move West) ] [ text "W" ]
-        , button [ onClick (Move East) ] [ text "E" ]
-        , button [ onClick (Move South) ] [ text "S" ]
+        [ button [ onClick (Perform (Move North)) ] [ text "N" ]
+        , button [ onClick (Perform (Move West)) ] [ text "W" ]
+        , button [ onClick (Perform (Move East)) ] [ text "E" ]
+        , button [ onClick (Perform (Move South)) ] [ text "S" ]
         ]
 
 
