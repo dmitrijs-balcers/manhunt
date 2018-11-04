@@ -6,24 +6,30 @@ import Dict exposing (Dict)
 import Html exposing (Html, button, div, h4, h5, img, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
-import Map exposing (Action, Amount, Height, LocationData, World, generateLocationData, generateWorld, getLandscape, landscapeToString, stringifyLocationData, viewLocation, viewLocationAction, viewMap)
+import Map
+    exposing
+        ( Action
+        , Amount
+        , Direction(..)
+        , Height
+        , LocationData
+        , World
+        , generateLocationData
+        , generateWorld
+        , getLandscape
+        , landscapeToString
+        , stringifyLocationData
+        , viewLocationAction
+        , viewMap
+        )
+import Player exposing (Player, PlayerPosition, updatePlayerPosition)
 import Random exposing (Seed, initialSeed)
 import Result
 import Simplex exposing (simplex2D)
 
 
-type alias PlayerPosition =
-    { lat : Int, lon : Int }
-
-
 type alias LocationsData =
     Dict PlayerCoordinate LocationData
-
-
-type alias Player =
-    { position : PlayerPosition
-    , items : List Map.Resource
-    }
 
 
 type alias Model =
@@ -32,13 +38,6 @@ type alias Model =
     , worldData : World Height
     , worldSeed : Seed
     }
-
-
-type Direction
-    = North
-    | South
-    | West
-    | East
 
 
 type Msg
@@ -55,10 +54,8 @@ initialModel : Model
 initialModel =
     { player =
         { position = { lat = 0, lon = 0 }
-        , items =
-            [ Map.Resource ( Map.ResourceName "Oak", Map.Rarity 0.1 )
-            , Map.Resource ( Map.ResourceName "Birch", Map.Rarity 0.5 )
-            ]
+        , items = []
+        , skills = { strength = 0 }
         }
     , locationsData = Dict.empty
     , worldData = Array.empty
@@ -150,42 +147,12 @@ performAction model =
         updateItems maybeLocationData player =
             case maybeLocationData of
                 Just ( ( resource, _ ), Map.Amount amount ) ->
-                    let
-                        newAmount : Int
-                        newAmount =
-                            amount - 1
-                    in
-                    if newAmount == 0 then
-                        player
-
-                    else
-                        { player | items = resource :: player.items }
+                    { player | items = resource :: player.items }
 
                 Nothing ->
                     player
     in
     ( Dict.update position subtract model.locationsData, updateItems currentLocationData model.player )
-
-
-updatePlayerPosition : Player -> Direction -> Player
-updatePlayerPosition player direction =
-    let
-        updatePosition : PlayerPosition -> Direction -> PlayerPosition
-        updatePosition position d =
-            case d of
-                North ->
-                    { position | lon = position.lon + 1 }
-
-                South ->
-                    { position | lon = position.lon - 1 }
-
-                West ->
-                    { position | lat = position.lat + 1 }
-
-                East ->
-                    { position | lat = position.lat - 1 }
-    in
-    { player | position = updatePosition player.position direction }
 
 
 refreshLocation : Model -> LocationsData
@@ -242,16 +209,12 @@ view model =
         playerCoordinate =
             ( model.player.position.lat, model.player.position.lon )
 
-        locationsData : LocationsData
-        locationsData =
-            model.locationsData
-
         locationData : Maybe LocationData
         locationData =
-            Dict.get playerCoordinate locationsData
+            Dict.get playerCoordinate model.locationsData
     in
     div []
-        [ viewLocation playerCoordinate model.worldData
+        [ Map.viewLocation playerCoordinate model.worldData
         , viewMoveControls
         , viewMap playerCoordinate model.worldData
         , viewResource locationData
