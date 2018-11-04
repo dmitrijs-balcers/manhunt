@@ -8,9 +8,9 @@ import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
 import Map
     exposing
-        ( Action
-        , Amount
+        ( Amount
         , Direction(..)
+        , Gather
         , Height
         , LocationData
         , World
@@ -42,7 +42,7 @@ type alias Model =
 
 type Msg
     = Move Direction
-    | Perform Action
+    | Perform Gather
     | GenerateWorld Int
 
 
