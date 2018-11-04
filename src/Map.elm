@@ -1,7 +1,7 @@
 module Map exposing
-    ( Action
-    , Amount(..)
+    ( Amount(..)
     , Direction(..)
+    , Gather
     , Height
     , LocationData
     , Rarity(..)
@@ -80,7 +80,37 @@ type Resource
 
 
 type alias LocationData =
-    ( ( Resource, Action ), Amount )
+    ( ( Resource, Gather ), Amount )
+
+
+type Gather
+    = Pluck
+    | Mine
+    | Chop
+
+
+type LandscapeResource
+    = LandscapeResource ( Gather, Resources )
+
+
+type LandscapeResources
+    = LandscapeResources (List LandscapeResource)
+
+
+type LandscapeName
+    = LandscapeName String
+
+
+type alias Landscape =
+    ( LandscapeName, LandscapeResources )
+
+
+type Landscapes
+    = Landscapes (Array Landscape)
+
+
+type Visibility
+    = Visibility Int
 
 
 woodResources : Resources
@@ -143,36 +173,6 @@ generateWorld (Size size) seed =
                     Height (Simplex.simplex2D permutationTable floatPoint)
                 )
         )
-
-
-type Action
-    = Pluck
-    | Mine
-    | Chop
-
-
-type LandscapeResource
-    = LandscapeResource ( Action, Resources )
-
-
-type LandscapeResources
-    = LandscapeResources (List LandscapeResource)
-
-
-type LandscapeName
-    = LandscapeName String
-
-
-type alias Landscape =
-    ( LandscapeName, LandscapeResources )
-
-
-type Landscapes
-    = Landscapes (Array Landscape)
-
-
-type Visibility
-    = Visibility Int
 
 
 landscapes : Landscapes
@@ -450,7 +450,7 @@ viewLocation pos worldMap =
             text ("N/A " ++ coordinateToString pos)
 
 
-viewLocationAction : (Action -> msg) -> LocationData -> Html msg
+viewLocationAction : (Gather -> msg) -> LocationData -> Html msg
 viewLocationAction msg locationData =
     div []
         [ button
@@ -459,7 +459,7 @@ viewLocationAction msg locationData =
         ]
 
 
-stringifyAction : Action -> String
+stringifyAction : Gather -> String
 stringifyAction action =
     case action of
         Pluck ->
