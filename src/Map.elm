@@ -3,6 +3,9 @@ module Map exposing
     , Amount(..)
     , Height
     , LocationData
+    , Rarity(..)
+    , Resource(..)
+    , ResourceName(..)
     , Size(..)
     , World
     , generateLocationData
@@ -57,64 +60,59 @@ type alias World a =
     Array (Array a)
 
 
-type Resources a
-    = Resources (Array a)
+type alias
+    Resources
+    -- shitty, but array (resource, maxAmount)
+    =
+    Array ( Resource, Amount )
 
 
 type Resource
-    = Resource ( ResourceName, Rarity, Amount )
+    = Resource ( ResourceName, Rarity )
 
 
 type alias LocationData =
     ( ( Resource, Action ), Amount )
 
 
-woodResources : Resources Resource
+woodResources : Resources
 woodResources =
-    Resources
-        (Array.fromList
-            [ Resource ( ResourceName "Oak", Rarity 0.1, Amount 10 )
-            , Resource ( ResourceName "Elm", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Birch", Rarity 0.5, Amount 10 )
-            , Resource ( ResourceName "Willow", Rarity 0.3, Amount 10 )
-            ]
-        )
+    Array.fromList
+        [ ( Resource ( ResourceName "Oak", Rarity 0.1 ), Amount 10 )
+        , ( Resource ( ResourceName "Elm", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Birch", Rarity 0.5 ), Amount 10 )
+        , ( Resource ( ResourceName "Willow", Rarity 0.3 ), Amount 10 )
+        ]
 
 
-rockResources : Resources Resource
+rockResources : Resources
 rockResources =
-    Resources
-        (Array.fromList
-            [ Resource ( ResourceName "Steel", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Bronze", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Stone", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Gold", Rarity 0.001, Amount 2 )
-            ]
-        )
+    Array.fromList
+        [ ( Resource ( ResourceName "Steel", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Bronze", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Stone", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Gold", Rarity 0.001 ), Amount 2 )
+        ]
 
 
-flowers : Resources Resource
+flowers : Resources
 flowers =
-    Resources
-        (Array.fromList
-            [ Resource ( ResourceName "Buttercup", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Daffodil", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Tulip", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "CommonDaisy", Rarity 0.25, Amount 10 )
-            ]
-        )
+    Array.fromList
+        [ ( Resource ( ResourceName "Buttercup", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Daffodil", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Tulip", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "CommonDaisy", Rarity 0.25 ), Amount 10 )
+        ]
 
 
-mushrooms : Resources Resource
+mushrooms : Resources
 mushrooms =
-    Resources
-        (Array.fromList
-            [ Resource ( ResourceName "Shiitake", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Chanterelle", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Agaricus", Rarity 0.25, Amount 10 )
-            , Resource ( ResourceName "Enoki", Rarity 0.25, Amount 10 )
-            ]
-        )
+    Array.fromList
+        [ ( Resource ( ResourceName "Shiitake", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Chanterelle", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Agaricus", Rarity 0.25 ), Amount 10 )
+        , ( Resource ( ResourceName "Enoki", Rarity 0.25 ), Amount 10 )
+        ]
 
 
 generateWorld : Size -> Seed -> World Height
@@ -146,7 +144,7 @@ type Action
 
 
 type LandscapeResource
-    = LandscapeResource ( Action, Resources Resource )
+    = LandscapeResource ( Action, Resources )
 
 
 type LandscapeResources
@@ -205,14 +203,14 @@ generateLocationData (LandscapeId landscapeId) =
             (\(LandscapeResource ( resourceAction, resources )) ->
                 genRandomResource resources
                     |> Random.andThen
-                        (\(Resource ( ResourceName resourceName, Rarity rarity, maxAmount )) ->
+                        (\( Resource ( ResourceName resourceName, Rarity rarity ), maxAmount ) ->
                             genAmountChance maxAmount
                                 |> Random.map
                                     (\( amount, luck ) ->
                                         if amount > 0 && succeed luck rarity then
                                             let
                                                 r =
-                                                    ( Resource ( ResourceName resourceName, Rarity rarity, maxAmount )
+                                                    ( Resource ( ResourceName resourceName, Rarity rarity )
                                                     , resourceAction
                                                     )
                                             in
@@ -233,8 +231,8 @@ genRandomLandscapeResource (LandscapeResources landscapeResources) =
         |> Random.map (\id -> findSafeInList id landscapeResources)
 
 
-genRandomResource : Resources Resource -> Generator Resource
-genRandomResource (Resources resources) =
+genRandomResource : Resources -> Generator ( Resource, Amount )
+genRandomResource resources =
     Random.int 0 (Array.length resources - 1)
         |> Random.map (\resourceId -> findSafeInDict resourceId resources)
 
@@ -264,7 +262,7 @@ stringifyLandscapeFailure resourceName amount luck =
 stringifyLocationData : LocationData -> String
 stringifyLocationData locationData =
     let
-        ( ( Resource ( ResourceName name, _, _ ), action ), Amount amount ) =
+        ( ( Resource ( ResourceName name, _ ), action ), Amount amount ) =
             locationData
     in
     name ++ " " ++ String.fromInt amount

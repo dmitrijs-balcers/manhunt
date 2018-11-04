@@ -50,6 +50,11 @@ h2.classy {
   color: #FF8800;
 }
 
+h4 {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
 button {
   border: 0;
   outline: none;
