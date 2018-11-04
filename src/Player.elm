@@ -3,6 +3,7 @@ module Player exposing
     , PlayerPosition
     , PlayerSkills
     , Stamina(..)
+    , decreaseStamina
     , updateItems
     , updatePlayerPosition
     )
@@ -38,8 +39,8 @@ type Stamina
 -- UPDATE
 
 
-updatePlayerPosition : Player -> Map.Direction -> Player
-updatePlayerPosition player direction =
+updatePlayerPosition : Map.Direction -> Player -> Player
+updatePlayerPosition direction player =
     let
         updatePosition : PlayerPosition -> Map.Direction -> PlayerPosition
         updatePosition position d =
@@ -75,3 +76,12 @@ updateItems maybeLocationData player =
 increaseSkill : PlayerSkills -> PlayerSkills
 increaseSkill skills =
     { skills | strength = skills.strength + 5 }
+
+
+decreaseStamina : Player -> Player
+decreaseStamina player =
+    let
+        (Stamina stamina) =
+            player.stamina
+    in
+    { player | stamina = Stamina (stamina - 5) }

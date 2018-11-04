@@ -23,7 +23,7 @@ import Map
         , viewLocationAction
         , viewMap
         )
-import Player exposing (Player, PlayerPosition, Stamina, updateItems, updatePlayerPosition)
+import Player exposing (Player, PlayerPosition, Stamina, decreaseStamina, updateItems, updatePlayerPosition)
 import Random exposing (Seed, initialSeed)
 import Result
 import Simplex exposing (simplex2D)
@@ -56,7 +56,7 @@ initialModel =
         { position = { lat = 0, lon = 0 }
         , items = []
         , skills = { strength = 0 }
-        , stamina = Player.Stamina 100
+        , stamina = Player.Stamina 100 -- should increase after some time
         }
     , locationsData = Dict.empty
     , worldData = Array.empty
@@ -80,7 +80,10 @@ update msg model =
                     in
                     ( { model
                         | worldSeed = seed
-                        , player = updatePlayerPosition model.player direction
+                        , player =
+                            model.player
+                                |> updatePlayerPosition direction
+                                |> decreaseStamina
                       }
                         |> (\m -> { m | locationsData = refreshLocation m })
                     , Cmd.none
@@ -93,7 +96,9 @@ update msg model =
                     in
                     ( { model
                         | locationsData = locationsData
-                        , player = player
+                        , player =
+                            player
+                                |> decreaseStamina
                       }
                     , Cmd.none
                     )
@@ -226,11 +231,7 @@ viewPlayerItems player =
         , text (Debug.toString player.stamina)
         , div []
             (List.map
-                (\(Map.Resource resource) ->
-                    let
-                        ( Map.ResourceName resourceName, _ ) =
-                            resource
-                    in
+                (\(Map.Resource ( Map.ResourceName resourceName, _ )) ->
                     div [] [ text resourceName ]
                 )
                 player.items
