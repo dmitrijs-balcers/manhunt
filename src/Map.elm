@@ -1,6 +1,7 @@
 module Map exposing
     ( Action
     , Amount(..)
+    , Direction(..)
     , Height
     , LocationData
     , Rarity(..)
@@ -28,6 +29,13 @@ import Random exposing (Generator, Seed, initialSeed, step)
 import SafeUtils exposing (findSafeInDict, findSafeInList)
 import Set exposing (Set)
 import Simplex
+
+
+type Direction
+    = North
+    | South
+    | West
+    | East
 
 
 {-| encapsulate this using function <https://egghead.io/lessons/elm-use-single-constructor-union-types-in-elm-to-prevent-invalid-data>
