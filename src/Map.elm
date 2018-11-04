@@ -1,7 +1,8 @@
 module Map exposing
-    ( Amount(..)
+    ( Action(..)
+    , Amount(..)
     , Direction(..)
-    , Gather
+    , Gather(..)
     , Height
     , LocationData
     , Rarity(..)
@@ -81,6 +82,11 @@ type Resource
 
 type alias LocationData =
     ( ( Resource, Gather ), Amount )
+
+
+type Action
+    = Move Direction
+    | Gather Gather
 
 
 type Gather
@@ -450,11 +456,11 @@ viewLocation pos worldMap =
             text ("N/A " ++ coordinateToString pos)
 
 
-viewLocationAction : (Gather -> msg) -> LocationData -> Html msg
+viewLocationAction : (Action -> msg) -> LocationData -> Html msg
 viewLocationAction msg locationData =
     div []
         [ button
-            [ onClick (msg (Tuple.second (Tuple.first locationData))) ]
+            [ onClick (msg (Gather (Tuple.second (Tuple.first locationData)))) ]
             [ text (stringifyAction (Tuple.second (Tuple.first locationData))) ]
         ]
 
