@@ -22,7 +22,7 @@ import Map
         , viewLocationAction
         , viewMap
         )
-import Player exposing (Player, PlayerPosition, updatePlayerPosition)
+import Player exposing (Player, PlayerPosition, Stamina, updateItems, updatePlayerPosition)
 import Random exposing (Seed, initialSeed)
 import Result
 import Simplex exposing (simplex2D)
@@ -56,6 +56,7 @@ initialModel =
         { position = { lat = 0, lon = 0 }
         , items = []
         , skills = { strength = 0 }
+        , stamina = Player.Stamina 100
         }
     , locationsData = Dict.empty
     , worldData = Array.empty
@@ -142,17 +143,10 @@ performAction model =
 
                 Nothing ->
                     maybeLocationData
-
-        updateItems : Maybe LocationData -> Player -> Player
-        updateItems maybeLocationData player =
-            case maybeLocationData of
-                Just ( ( resource, _ ), Map.Amount amount ) ->
-                    { player | items = resource :: player.items }
-
-                Nothing ->
-                    player
     in
-    ( Dict.update position subtract model.locationsData, updateItems currentLocationData model.player )
+    ( Dict.update position subtract model.locationsData
+    , updateItems currentLocationData model.player
+    )
 
 
 refreshLocation : Model -> LocationsData
@@ -226,6 +220,8 @@ viewPlayerItems : Player -> Html Msg
 viewPlayerItems player =
     div []
         [ h4 [] [ text "Items:" ]
+        , text (Debug.toString player.skills)
+        , text (Debug.toString player.stamina)
         , div []
             (List.map
                 (\(Map.Resource resource) ->

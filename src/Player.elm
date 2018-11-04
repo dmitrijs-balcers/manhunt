@@ -1,6 +1,13 @@
-module Player exposing (Player, PlayerPosition, PlayerSkills, updatePlayerPosition)
+module Player exposing
+    ( Player
+    , PlayerPosition
+    , PlayerSkills
+    , Stamina(..)
+    , updateItems
+    , updatePlayerPosition
+    )
 
-import Map exposing (Direction(..))
+import Map exposing (Direction(..), LocationData)
 
 
 
@@ -11,6 +18,7 @@ type alias Player =
     { position : PlayerPosition
     , items : List Map.Resource
     , skills : PlayerSkills
+    , stamina : Stamina
     }
 
 
@@ -20,6 +28,10 @@ type alias PlayerPosition =
 
 type alias PlayerSkills =
     { strength : Int }
+
+
+type Stamina
+    = Stamina Int
 
 
 
@@ -45,3 +57,21 @@ updatePlayerPosition player direction =
                     { position | lat = position.lat - 1 }
     in
     { player | position = updatePosition player.position direction }
+
+
+updateItems : Maybe LocationData -> Player -> Player
+updateItems maybeLocationData player =
+    case maybeLocationData of
+        Just ( ( Map.Resource resource, _ ), Map.Amount amount ) ->
+            { player
+                | items = Map.Resource resource :: player.items
+                , skills = increaseSkill player.skills
+            }
+
+        Nothing ->
+            player
+
+
+increaseSkill : PlayerSkills -> PlayerSkills
+increaseSkill skills =
+    { skills | strength = skills.strength + 5 }
