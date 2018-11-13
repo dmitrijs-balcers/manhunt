@@ -1,11 +1,12 @@
 module Player exposing
     ( Player
-    , PlayerPosition
-    , PlayerSkills
+    , Position
+    , Skills
     , Stamina(..)
     , decreaseStamina
+    , initialState
     , updateItems
-    , updatePlayerPosition
+    , updatePosition
     )
 
 import Map exposing (Direction(..), LocationData)
@@ -16,18 +17,18 @@ import Map exposing (Direction(..), LocationData)
 
 
 type alias Player =
-    { position : PlayerPosition
+    { position : Position
     , items : List Map.Resource
-    , skills : PlayerSkills
+    , skills : Skills
     , stamina : Stamina
     }
 
 
-type alias PlayerPosition =
+type alias Position =
     { lat : Int, lon : Int }
 
 
-type alias PlayerSkills =
+type alias Skills =
     { strength : Int }
 
 
@@ -35,15 +36,24 @@ type Stamina
     = Stamina Int
 
 
+initialState : Player
+initialState =
+    { position = { lat = 0, lon = 0 }
+    , items = []
+    , skills = { strength = 0 }
+    , stamina = Stamina 100 -- should increase after some time
+    }
+
+
 
 -- UPDATE
 
 
-updatePlayerPosition : Map.Direction -> Player -> Player
-updatePlayerPosition direction player =
+updatePosition : Map.Direction -> Player -> Player
+updatePosition direction player =
     let
-        updatePosition : PlayerPosition -> Map.Direction -> PlayerPosition
-        updatePosition position d =
+        upd : Position -> Map.Direction -> Position
+        upd position d =
             case d of
                 North ->
                     { position | lon = position.lon + 1 }
@@ -57,7 +67,7 @@ updatePlayerPosition direction player =
                 East ->
                     { position | lat = position.lat - 1 }
     in
-    { player | position = updatePosition player.position direction }
+    { player | position = upd player.position direction }
 
 
 updateItems : Maybe LocationData -> Player -> Player
@@ -73,7 +83,7 @@ updateItems maybeLocationData player =
             player
 
 
-increaseSkill : PlayerSkills -> PlayerSkills
+increaseSkill : Skills -> Skills
 increaseSkill skills =
     { skills | strength = skills.strength + 5 }
 
