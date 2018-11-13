@@ -6,37 +6,21 @@ import Dict exposing (Dict)
 import Html exposing (Html, button, div, h4, h5, img, text)
 import Html.Attributes exposing (src)
 import Html.Events exposing (onClick)
-import Map
-    exposing
-        ( Action(..)
-        , Amount
-        , Direction(..)
-        , Gather
-        , Height
-        , LocationData
-        , World
-        , generateLocationData
-        , generateWorld
-        , getLandscape
-        , landscapeToString
-        , stringifyLocationData
-        , viewLocationAction
-        , viewMap
-        )
-import Player exposing (Player, PlayerPosition, Stamina, decreaseStamina, updateItems, updatePlayerPosition)
+import Map exposing (Action(..), Direction(..))
+import Player exposing (Player)
 import Random exposing (Seed, initialSeed)
 import Result
 import Simplex exposing (simplex2D)
 
 
 type alias LocationsData =
-    Dict PlayerCoordinate LocationData
+    Dict PlayerCoordinate Map.LocationData
 
 
 type alias Model =
     { player : Player
     , locationsData : LocationsData
-    , worldData : World Height
+    , worldData : Map.World Map.Height
     , worldSeed : Seed
     }
 
@@ -52,12 +36,7 @@ type alias PlayerCoordinate =
 
 initialModel : Model
 initialModel =
-    { player =
-        { position = { lat = 0, lon = 0 }
-        , items = []
-        , skills = { strength = 0 }
-        , stamina = Player.Stamina 100 -- should increase after some time
-        }
+    { player = Player.initialState
     , locationsData = Dict.empty
     , worldData = Array.empty
     , worldSeed = initialSeed 0
@@ -73,7 +52,7 @@ update msg model =
     case msg of
         Perform action ->
             case action of
-                Move direction ->
+                Map.Move direction ->
                     let
                         ( _, seed ) =
                             Random.step (Random.int 1 6000) model.worldSeed
@@ -82,14 +61,14 @@ update msg model =
                         | worldSeed = seed
                         , player =
                             model.player
-                                |> updatePlayerPosition direction
-                                |> decreaseStamina
+                                |> Player.updatePosition direction
+                                |> Player.decreaseStamina
                       }
                         |> (\m -> { m | locationsData = refreshLocation m })
                     , Cmd.none
                     )
 
-                Gather gather ->
+                Map.Gather gather ->
                     let
                         ( locationsData, player ) =
                             performAction model
@@ -98,7 +77,7 @@ update msg model =
                         | locationsData = locationsData
                         , player =
                             player
-                                |> decreaseStamina
+                                |> Player.decreaseStamina
                       }
                     , Cmd.none
                     )
@@ -115,7 +94,7 @@ update msg model =
                         model.worldData
 
                     else
-                        generateWorld (Map.Size 150) worldSeed
+                        Map.generateWorld (Map.Size 150) worldSeed
               }
                 |> (\m -> { m | locationsData = refreshLocation m })
             , Cmd.none
@@ -129,11 +108,11 @@ performAction model =
         position =
             ( model.player.position.lat, model.player.position.lon )
 
-        currentLocationData : Maybe LocationData
+        currentLocationData : Maybe Map.LocationData
         currentLocationData =
             Dict.get position model.locationsData
 
-        subtract : Maybe LocationData -> Maybe LocationData
+        subtract : Maybe Map.LocationData -> Maybe Map.LocationData
         subtract maybeLocationData =
             case maybeLocationData of
                 Just ( ( resource, action ), Map.Amount amount ) ->
@@ -152,7 +131,7 @@ performAction model =
                     maybeLocationData
     in
     ( Dict.update position subtract model.locationsData
-    , updateItems currentLocationData model.player
+    , Player.updateItems currentLocationData model.player
     )
 
 
@@ -163,7 +142,7 @@ refreshLocation model =
         position =
             ( model.player.position.lat, model.player.position.lon )
 
-        locationData : Maybe LocationData
+        locationData : Maybe Map.LocationData
         locationData =
             Dict.get position model.locationsData
     in
@@ -176,12 +155,12 @@ refreshLocation model =
             Debug.log "location data already exists" model.locationsData
 
         Nothing ->
-            case getLandscape position model.worldData of
+            case Map.getLandscape position model.worldData of
                 Just landscape ->
                     let
-                        generatedLocationData : Maybe LocationData
+                        generatedLocationData : Maybe Map.LocationData
                         generatedLocationData =
-                            Tuple.first (Random.step (generateLocationData landscape) model.worldSeed)
+                            Tuple.first (Random.step (Map.generateLocationData landscape) model.worldSeed)
                     in
                     case generatedLocationData of
                         Just ld ->
@@ -198,9 +177,9 @@ refreshLocation model =
 -- VIEW
 
 
-viewLocationResource : LocationData -> Html msg
+viewLocationResource : Map.LocationData -> Html msg
 viewLocationResource data =
-    text (stringifyLocationData data)
+    text (Map.stringifyLocationData data)
 
 
 view : Model -> Html Msg
@@ -210,14 +189,14 @@ view model =
         playerCoordinate =
             ( model.player.position.lat, model.player.position.lon )
 
-        locationData : Maybe LocationData
+        locationData : Maybe Map.LocationData
         locationData =
             Dict.get playerCoordinate model.locationsData
     in
     div []
         [ Map.viewLocation playerCoordinate model.worldData
         , viewMoveControls
-        , viewMap playerCoordinate model.worldData
+        , Map.viewMap playerCoordinate model.worldData
         , viewResource locationData
         , viewPlayerItems model.player
         ]
@@ -239,7 +218,7 @@ viewPlayerItems player =
         ]
 
 
-viewResource : Maybe LocationData -> Html Msg
+viewResource : Maybe Map.LocationData -> Html Msg
 viewResource maybeLocationData =
     case maybeLocationData of
         Nothing ->
@@ -247,7 +226,7 @@ viewResource maybeLocationData =
 
         Just locationData ->
             div []
-                [ viewLocationAction Perform locationData
+                [ Map.viewLocationAction Perform locationData
                 , viewLocationResource locationData
                 ]
 
