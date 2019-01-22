@@ -1,16 +1,15 @@
 module Manhunt exposing (Model, main)
 
 import Array exposing (Array)
-import Browser exposing (sandbox)
+import Browser exposing (element)
 import Dict exposing (Dict)
 import Html exposing (Html, button, div, h4, h5, img, text)
-import Html.Attributes exposing (src)
+import Maybe.Extra exposing (filter)
+import Maybe exposing (map, withDefault)
 import Html.Events exposing (onClick)
 import Map exposing (Action(..), Direction(..))
 import Player exposing (Player)
 import Random exposing (Seed, initialSeed)
-import Result
-import Simplex exposing (simplex2D)
 
 
 type alias LocationsData =
@@ -75,9 +74,7 @@ update msg model =
                     in
                     ( { model
                         | locationsData = locationsData
-                        , player =
-                            player
-                                |> Player.decreaseStamina
+                        , player = Player.decreaseStamina player
                       }
                     , Cmd.none
                     )
@@ -104,9 +101,9 @@ update msg model =
 performAction : Model -> ( LocationsData, Player )
 performAction model =
     let
-        position : PlayerCoordinate
+        position: PlayerCoordinate
         position =
-            ( model.player.position.lat, model.player.position.lon )
+            positionToTuple model.player.position
 
         currentLocationData : Maybe Map.LocationData
         currentLocationData =
@@ -114,64 +111,33 @@ performAction model =
 
         subtract : Maybe Map.LocationData -> Maybe Map.LocationData
         subtract maybeLocationData =
-            case maybeLocationData of
-                Just ( ( resource, action ), Map.Amount amount ) ->
-                    let
-                        newAmount : Int
-                        newAmount =
-                            amount - 1
-                    in
-                    if newAmount == 0 then
-                        Nothing
-
-                    else
-                        Just ( ( resource, action ), Map.Amount newAmount )
-
-                Nothing ->
-                    maybeLocationData
+            maybeLocationData
+                |> map (\(data, Map.Amount a) -> (data, Map.Amount (a - 1)))
+                |> filter (\(_, Map.Amount a) -> a > 0)
     in
     ( Dict.update position subtract model.locationsData
     , Player.updateItems currentLocationData model.player
     )
-
 
 refreshLocation : Model -> LocationsData
 refreshLocation model =
     let
         position : PlayerCoordinate
         position =
-            ( model.player.position.lat, model.player.position.lon )
-
-        locationData : Maybe Map.LocationData
-        locationData =
-            Dict.get position model.locationsData
+            positionToTuple model.player.position
     in
-    case locationData of
-        Just data ->
-            {-
-               There should be delay between the updates
-               If location data were not generated at first we should regenerate after X time
-            -}
-            Debug.log "location data already exists" model.locationsData
-
-        Nothing ->
-            case Map.getLandscape position model.worldData of
-                Just landscape ->
-                    let
-                        generatedLocationData : Maybe Map.LocationData
-                        generatedLocationData =
-                            Tuple.first (Random.step (Map.generateLocationData landscape) model.worldSeed)
-                    in
-                    case generatedLocationData of
-                        Just ld ->
-                            Dict.insert position ld model.locationsData
-
-                        Nothing ->
-                            model.locationsData
-
-                Nothing ->
-                    model.locationsData
-
+        Map.getLandscape position model.worldData
+            |> map (\landscape ->
+                let
+                    generatedLocationData : Maybe Map.LocationData
+                    generatedLocationData =
+                        Tuple.first (Random.step (Map.generateLocationData landscape) model.worldSeed)
+                in
+                generatedLocationData
+                    |> map (\ld -> Dict.insert position ld model.locationsData)
+                    |> withDefault model.locationsData
+                )
+            |> withDefault model.locationsData
 
 
 -- VIEW
@@ -187,7 +153,7 @@ view model =
     let
         playerCoordinate : PlayerCoordinate
         playerCoordinate =
-            ( model.player.position.lat, model.player.position.lon )
+            positionToTuple model.player.position
 
         locationData : Maybe Map.LocationData
         locationData =
@@ -200,6 +166,10 @@ view model =
         , viewResource locationData
         , viewPlayerItems model.player
         ]
+
+positionToTuple : Player.Position -> PlayerCoordinate
+positionToTuple ({ lat, lon }) =
+    (lat, lon)
 
 
 viewPlayerItems : Player -> Html Msg
@@ -243,7 +213,7 @@ viewMoveControls =
 
 main : Program () Model Msg
 main =
-    Browser.element
+    element
         { init = \flags -> ( initialModel, Random.generate GenerateWorld (Random.int 1 6000) )
         , subscriptions = always Sub.none
         , view = view
