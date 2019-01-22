@@ -10,6 +10,7 @@ module Player exposing
     )
 
 import Map exposing (Direction(..), LocationData)
+import Maybe exposing (map, withDefault)
 
 
 
@@ -72,15 +73,14 @@ updatePosition direction player =
 
 updateItems : Maybe LocationData -> Player -> Player
 updateItems maybeLocationData player =
-    case maybeLocationData of
-        Just ( ( Map.Resource resource, _ ), Map.Amount amount ) ->
+    maybeLocationData
+        |> map (\( ( resource, _ ), _ ) ->
             { player
-                | items = Map.Resource resource :: player.items
+                | items = resource :: player.items
                 , skills = increaseSkill player.skills
             }
-
-        Nothing ->
-            player
+        )
+        |> withDefault player
 
 
 increaseSkill : Skills -> Skills
@@ -95,3 +95,4 @@ decreaseStamina player =
             player.stamina
     in
     { player | stamina = Stamina (stamina - 5) }
+

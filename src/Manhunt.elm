@@ -3,6 +3,7 @@ module Manhunt exposing (Model, main)
 import Array exposing (Array)
 import Browser exposing (element)
 import Dict exposing (Dict)
+import Either exposing (Either)
 import Html exposing (Html, button, div, h4, h5, img, text)
 import Maybe.Extra exposing (filter)
 import Maybe exposing (map, withDefault)
@@ -68,16 +69,19 @@ update msg model =
                     )
 
                 Map.Gather gather ->
-                    let
-                        ( locationsData, player ) =
-                            performAction model
-                    in
-                    ( { model
-                        | locationsData = locationsData
-                        , player = Player.decreaseStamina player
-                      }
-                    , Cmd.none
-                    )
+                    model.player.stamina
+                        |> \(Player.Stamina stamina) ->
+                            if stamina > 0 then
+                                performAction model
+                                    |> \(locationsData, player) ->
+                                        ( { model
+                                            | locationsData = locationsData
+                                            , player = Player.decreaseStamina player
+                                          }
+                                        , Cmd.none
+                                        )
+                            else
+                                ( model, Cmd.none )
 
         GenerateWorld randomNumber ->
             let
@@ -97,6 +101,16 @@ update msg model =
             , Cmd.none
             )
 
+type NotEnoughStamina = NotEnoughStamina
+
+checkStamina : Player -> Either NotEnoughStamina Player.Stamina
+checkStamina player =
+    player.stamina
+        |> \(Player.Stamina stamina) ->
+            if stamina <= 0 then
+                Either.Left NotEnoughStamina
+            else
+                Either.Right player.stamina
 
 performAction : Model -> ( LocationsData, Player )
 performAction model =
