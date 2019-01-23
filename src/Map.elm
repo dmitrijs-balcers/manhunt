@@ -306,8 +306,8 @@ coordinateOnMap ( lat, lon ) mapSize =
     ( toHalf - lat, toHalf - lon )
 
 
-getLandscape : ( Int, Int ) -> World Height -> Maybe LandscapeId
-getLandscape position worldMap =
+getLandscape : World Height -> ( Int, Int ) -> Maybe LandscapeId
+getLandscape worldMap position =
     case getItemFrom2dArray (coordinateOnMap position (Array.length worldMap)) worldMap of
         Just height ->
             Just (heightToLandscapeId height)

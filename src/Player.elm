@@ -71,16 +71,12 @@ updatePosition direction player =
     { player | position = upd player.position direction }
 
 
-updateItems : Maybe LocationData -> Player -> Player
-updateItems maybeLocationData player =
-    maybeLocationData
-        |> map (\( ( resource, _ ), _ ) ->
-            { player
-                | items = resource :: player.items
-                , skills = increaseSkill player.skills
-            }
-        )
-        |> withDefault player
+updateItems : Player -> LocationData -> Player
+updateItems player ( ( resource, _ ), _ ) =
+    { player
+        | items = resource :: player.items
+        , skills = increaseSkill player.skills
+    }
 
 
 increaseSkill : Skills -> Skills
@@ -95,4 +91,3 @@ decreaseStamina player =
             player.stamina
     in
     { player | stamina = Stamina (stamina - 5) }
-

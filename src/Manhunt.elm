@@ -51,37 +51,43 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Perform action ->
-            case action of
-                Map.Move direction ->
-                    let
-                        ( _, seed ) =
-                            Random.step (Random.int 1 6000) model.worldSeed
-                    in
-                    ( { model
-                        | worldSeed = seed
-                        , player =
-                            model.player
-                                |> Player.updatePosition direction
-                                |> Player.decreaseStamina
-                      }
-                        |> (\m -> { m | locationsData = refreshLocation m })
-                    , Cmd.none
-                    )
+            case checkStamina model of
+                Either.Left _ ->
+                    ( model, Cmd.none )
+                Either.Right _ ->
+                    case action of
+                        Map.Move direction ->
+                            let
+                                ( _, seed ) =
+                                    Random.step (Random.int 1 6000) model.worldSeed
+                            in
+                            ( { model
+                                | worldSeed = seed
+                                , player =
+                                    model.player
+                                        |> Player.updatePosition direction
+                                        |> Player.decreaseStamina
+                              }
+                                |> (\m ->
+                                    positionToTuple m.player.position
+                                        |> (\position -> Dict.get position m.locationsData)
+                                        |> \(locationData) ->
+                                            case locationData of
+                                                Nothing -> { m | locationsData = refreshLocation m }
+                                                Just _ -> m
+                                    )
+                            , Cmd.none
+                            )
 
-                Map.Gather gather ->
-                    model.player.stamina
-                        |> \(Player.Stamina stamina) ->
-                            if stamina > 0 then
-                                performAction model
-                                    |> \(locationsData, player) ->
-                                        ( { model
-                                            | locationsData = locationsData
-                                            , player = Player.decreaseStamina player
-                                          }
-                                        , Cmd.none
-                                        )
-                            else
-                                ( model, Cmd.none )
+                        Map.Gather _ ->
+                          performAction model
+                            |> \(locationsData, player) ->
+                                ( { model
+                                    | locationsData = locationsData
+                                    , player = Player.decreaseStamina player
+                                  }
+                                , Cmd.none
+                                )
 
         GenerateWorld randomNumber ->
             let
@@ -103,35 +109,31 @@ update msg model =
 
 type NotEnoughStamina = NotEnoughStamina
 
-checkStamina : Player -> Either NotEnoughStamina Player.Stamina
-checkStamina player =
-    player.stamina
+checkStamina : Model -> Either Model Model
+checkStamina model =
+    model.player.stamina
         |> \(Player.Stamina stamina) ->
             if stamina <= 0 then
-                Either.Left NotEnoughStamina
+                Either.Left model
             else
-                Either.Right player.stamina
+                Either.Right model
 
 performAction : Model -> ( LocationsData, Player )
 performAction model =
     let
-        position: PlayerCoordinate
-        position =
-            positionToTuple model.player.position
-
-        currentLocationData : Maybe Map.LocationData
-        currentLocationData =
-            Dict.get position model.locationsData
-
         subtract : Maybe Map.LocationData -> Maybe Map.LocationData
         subtract maybeLocationData =
             maybeLocationData
                 |> map (\(data, Map.Amount a) -> (data, Map.Amount (a - 1)))
                 |> filter (\(_, Map.Amount a) -> a > 0)
     in
-    ( Dict.update position subtract model.locationsData
-    , Player.updateItems currentLocationData model.player
-    )
+    positionToTuple model.player.position
+        |> \(position) ->
+            ( Dict.update position subtract model.locationsData
+            , Dict.get position model.locationsData
+                |> map (Player.updateItems model.player)
+                |> withDefault model.player
+            )
 
 refreshLocation : Model -> LocationsData
 refreshLocation model =
@@ -140,7 +142,8 @@ refreshLocation model =
         position =
             positionToTuple model.player.position
     in
-        Map.getLandscape position model.worldData
+        position
+            |> Map.getLandscape model.worldData
             |> map (\landscape ->
                 let
                     generatedLocationData : Maybe Map.LocationData
