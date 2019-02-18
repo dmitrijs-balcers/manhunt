@@ -1,4 +1,5 @@
 elm-stuff/
+.idea/
 elm.js
 bingo.js
 node_modules/

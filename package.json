@@ -1,0 +1,12 @@
+{
+  "name": "manhunt",
+  "version": "1.0.0",
+  "main": "index.html",
+  "scripts": {
+    "start": "elm-live src/Manhunt.elm -- --output=manhunt.js --debug"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmitrijs-balcers/manhunt.git"
+  }
+}
