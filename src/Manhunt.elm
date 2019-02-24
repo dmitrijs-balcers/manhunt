@@ -1,39 +1,23 @@
-module Manhunt exposing (Model, main)
+module Manhunt exposing (main)
 
 import Array exposing (Array)
 import Browser exposing (element)
+import Browser.Events
 import Dict exposing (Dict)
 import Either exposing (Either)
 import Html exposing (Html, button, div, h4, h5, img, text)
 import Html.Events exposing (onClick)
+import Json.Decode as Decode
 import Map exposing (Action(..), Direction(..))
 import Maybe exposing (map, withDefault)
 import Maybe.Extra exposing (filter)
+import Model exposing (KeyboardAction, LocationsData, Model, Other, PlayerCoordinate)
+import Msg exposing (Msg(..))
+import Platform.Sub exposing (Sub)
 import Player exposing (Player)
 import Random exposing (Seed, initialSeed)
 import Time
-
-
-type alias LocationsData =
-    Dict PlayerCoordinate Map.LocationData
-
-
-type alias Model =
-    { player : Player
-    , locationsData : LocationsData
-    , worldData : Map.World Map.Height
-    , worldSeed : Seed
-    }
-
-
-type Msg
-    = Perform Action
-    | GenerateWorld Int
-    | Tick Time.Posix
-
-
-type alias PlayerCoordinate =
-    ( Int, Int )
+import Update exposing (positionToTuple, refreshLocation)
 
 
 initialModel : Model
@@ -52,6 +36,19 @@ initialModel =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Keyboard keyAction ->
+            case enoughStamina model of
+                Either.Left _ ->
+                    ( model, Cmd.none )
+
+                Either.Right _ ->
+                    case keyAction of
+                        Either.Left direction ->
+                            Update.move model direction
+
+                        Either.Right _ ->
+                            ( model, Cmd.none )
+
         Perform action ->
             case enoughStamina model of
                 Either.Left _ ->
@@ -60,31 +57,7 @@ update msg model =
                 Either.Right _ ->
                     case action of
                         Map.Move direction ->
-                            let
-                                ( _, seed ) =
-                                    Random.step (Random.int 1 6000) model.worldSeed
-                            in
-                            ( { model
-                                | worldSeed = seed
-                                , player =
-                                    model.player
-                                        |> Player.updatePosition direction
-                                        |> Player.decreaseStamina
-                              }
-                                |> (\m ->
-                                        positionToTuple m.player.position
-                                            |> (\position -> Dict.get position m.locationsData)
-                                            |> (\locationData ->
-                                                    case locationData of
-                                                        Nothing ->
-                                                            { m | locationsData = refreshLocation m }
-
-                                                        Just _ ->
-                                                            m
-                                               )
-                                   )
-                            , Cmd.none
-                            )
+                            Update.move model direction
 
                         Map.Gather _ ->
                             performAction model
@@ -167,29 +140,6 @@ performAction model =
            )
 
 
-refreshLocation : Model -> LocationsData
-refreshLocation model =
-    let
-        position : PlayerCoordinate
-        position =
-            positionToTuple model.player.position
-    in
-    position
-        |> Map.getLandscape model.worldData
-        |> map
-            (\landscape ->
-                let
-                    generatedLocationData : Maybe Map.LocationData
-                    generatedLocationData =
-                        Tuple.first (Random.step (Map.generateLocationData landscape) model.worldSeed)
-                in
-                generatedLocationData
-                    |> map (\ld -> Dict.insert position ld model.locationsData)
-                    |> withDefault model.locationsData
-            )
-        |> withDefault model.locationsData
-
-
 
 -- VIEW
 
@@ -217,11 +167,6 @@ view model =
         , viewResource locationData
         , viewPlayerItems model.player
         ]
-
-
-positionToTuple : Player.Position -> PlayerCoordinate
-positionToTuple { lat, lon } =
-    ( lat, lon )
 
 
 viewPlayerItems : Player -> Html Msg
@@ -267,9 +212,36 @@ viewMoveControls =
 -- SUBSCRIPTIONS
 
 
+keyDecoder : Decode.Decoder KeyboardAction
+keyDecoder =
+    Decode.map toDirection (Decode.field "key" Decode.string)
+
+
+toDirection : String -> Either Direction Other
+toDirection string =
+    case string of
+        "ArrowLeft" ->
+            Either.Left West
+
+        "ArrowRight" ->
+            Either.Left East
+
+        "ArrowUp" ->
+            Either.Left North
+
+        "ArrowDown" ->
+            Either.Left South
+
+        _ ->
+            Either.Right string
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Time.every 1000 Tick
+    Sub.batch
+        [ Time.every 1000 Tick
+        , Browser.Events.onKeyDown (Decode.map Keyboard keyDecoder)
+        ]
 
 
 main : Program () Model Msg
