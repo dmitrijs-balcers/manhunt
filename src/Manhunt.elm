@@ -5,10 +5,10 @@ import Browser exposing (element)
 import Dict exposing (Dict)
 import Either exposing (Either)
 import Html exposing (Html, button, div, h4, h5, img, text)
-import Maybe.Extra exposing (filter)
-import Maybe exposing (map, withDefault)
 import Html.Events exposing (onClick)
 import Map exposing (Action(..), Direction(..))
+import Maybe exposing (map, withDefault)
+import Maybe.Extra exposing (filter)
 import Player exposing (Player)
 import Random exposing (Seed, initialSeed)
 
@@ -54,6 +54,7 @@ update msg model =
             case checkStamina model of
                 Either.Left _ ->
                     ( model, Cmd.none )
+
                 Either.Right _ ->
                     case action of
                         Map.Move direction ->
@@ -69,25 +70,30 @@ update msg model =
                                         |> Player.decreaseStamina
                               }
                                 |> (\m ->
-                                    positionToTuple m.player.position
-                                        |> (\position -> Dict.get position m.locationsData)
-                                        |> \(locationData) ->
-                                            case locationData of
-                                                Nothing -> { m | locationsData = refreshLocation m }
-                                                Just _ -> m
-                                    )
+                                        positionToTuple m.player.position
+                                            |> (\position -> Dict.get position m.locationsData)
+                                            |> (\locationData ->
+                                                    case locationData of
+                                                        Nothing ->
+                                                            { m | locationsData = refreshLocation m }
+
+                                                        Just _ ->
+                                                            m
+                                               )
+                                   )
                             , Cmd.none
                             )
 
                         Map.Gather _ ->
-                          performAction model
-                            |> \(locationsData, player) ->
-                                ( { model
-                                    | locationsData = locationsData
-                                    , player = Player.decreaseStamina player
-                                  }
-                                , Cmd.none
-                                )
+                            performAction model
+                                |> (\( locationsData, player ) ->
+                                        ( { model
+                                            | locationsData = locationsData
+                                            , player = Player.decreaseStamina player
+                                          }
+                                        , Cmd.none
+                                        )
+                                   )
 
         GenerateWorld randomNumber ->
             let
@@ -107,16 +113,22 @@ update msg model =
             , Cmd.none
             )
 
-type NotEnoughStamina = NotEnoughStamina
+
+type NotEnoughStamina
+    = NotEnoughStamina
+
 
 checkStamina : Model -> Either Model Model
 checkStamina model =
     model.player.stamina
-        |> \(Player.Stamina stamina) ->
-            if stamina <= 0 then
-                Either.Left model
-            else
-                Either.Right model
+        |> (\(Player.Stamina stamina) ->
+                if stamina <= 0 then
+                    Either.Left model
+
+                else
+                    Either.Right model
+           )
+
 
 performAction : Model -> ( LocationsData, Player )
 performAction model =
@@ -124,16 +136,18 @@ performAction model =
         subtract : Maybe Map.LocationData -> Maybe Map.LocationData
         subtract maybeLocationData =
             maybeLocationData
-                |> map (\(data, Map.Amount a) -> (data, Map.Amount (a - 1)))
-                |> filter (\(_, Map.Amount a) -> a > 0)
+                |> map (\( data, Map.Amount a ) -> ( data, Map.Amount (a - 1) ))
+                |> filter (\( _, Map.Amount a ) -> a > 0)
     in
     positionToTuple model.player.position
-        |> \(position) ->
-            ( Dict.update position subtract model.locationsData
-            , Dict.get position model.locationsData
-                |> map (Player.updateItems model.player)
-                |> withDefault model.player
-            )
+        |> (\position ->
+                ( Dict.update position subtract model.locationsData
+                , Dict.get position model.locationsData
+                    |> map (Player.updateItems model.player)
+                    |> withDefault model.player
+                )
+           )
+
 
 refreshLocation : Model -> LocationsData
 refreshLocation model =
@@ -142,9 +156,10 @@ refreshLocation model =
         position =
             positionToTuple model.player.position
     in
-        position
-            |> Map.getLandscape model.worldData
-            |> map (\landscape ->
+    position
+        |> Map.getLandscape model.worldData
+        |> map
+            (\landscape ->
                 let
                     generatedLocationData : Maybe Map.LocationData
                     generatedLocationData =
@@ -153,8 +168,9 @@ refreshLocation model =
                 generatedLocationData
                     |> map (\ld -> Dict.insert position ld model.locationsData)
                     |> withDefault model.locationsData
-                )
-            |> withDefault model.locationsData
+            )
+        |> withDefault model.locationsData
+
 
 
 -- VIEW
@@ -184,9 +200,10 @@ view model =
         , viewPlayerItems model.player
         ]
 
+
 positionToTuple : Player.Position -> PlayerCoordinate
-positionToTuple ({ lat, lon }) =
-    (lat, lon)
+positionToTuple { lat, lon } =
+    ( lat, lon )
 
 
 viewPlayerItems : Player -> Html Msg
