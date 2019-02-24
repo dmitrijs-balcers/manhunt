@@ -4,6 +4,7 @@ module Player exposing
     , Skills
     , Stamina(..)
     , decreaseStamina
+    , increaseStamina
     , initialState
     , updateItems
     , updatePosition
@@ -91,3 +92,12 @@ decreaseStamina player =
             player.stamina
     in
     { player | stamina = Stamina (stamina - 5) }
+
+
+increaseStamina : Player -> Player
+increaseStamina player =
+    let
+        (Stamina stamina) =
+            player.stamina
+    in
+    { player | stamina = Stamina (stamina + 1) }

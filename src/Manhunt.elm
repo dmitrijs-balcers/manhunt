@@ -11,6 +11,7 @@ import Maybe exposing (map, withDefault)
 import Maybe.Extra exposing (filter)
 import Player exposing (Player)
 import Random exposing (Seed, initialSeed)
+import Time
 
 
 type alias LocationsData =
@@ -28,6 +29,7 @@ type alias Model =
 type Msg
     = Perform Action
     | GenerateWorld Int
+    | Tick Time.Posix
 
 
 type alias PlayerCoordinate =
@@ -51,7 +53,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Perform action ->
-            case checkStamina model of
+            case enoughStamina model of
                 Either.Left _ ->
                     ( model, Cmd.none )
 
@@ -113,16 +115,32 @@ update msg model =
             , Cmd.none
             )
 
+        Tick posix ->
+            case tooMuchStamina model of
+                Either.Left _ ->
+                    ( model, Cmd.none )
 
-type NotEnoughStamina
-    = NotEnoughStamina
+                Either.Right _ ->
+                    ( { model | player = Player.increaseStamina model.player }, Cmd.none )
 
 
-checkStamina : Model -> Either Model Model
-checkStamina model =
+enoughStamina : Model -> Either Model Model
+enoughStamina model =
     model.player.stamina
         |> (\(Player.Stamina stamina) ->
                 if stamina <= 0 then
+                    Either.Left model
+
+                else
+                    Either.Right model
+           )
+
+
+tooMuchStamina : Model -> Either Model Model
+tooMuchStamina model =
+    model.player.stamina
+        |> (\(Player.Stamina stamina) ->
+                if stamina >= 100 then
                     Either.Left model
 
                 else
@@ -245,11 +263,20 @@ viewMoveControls =
         ]
 
 
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Time.every 1000 Tick
+
+
 main : Program () Model Msg
 main =
     element
         { init = \flags -> ( initialModel, Random.generate GenerateWorld (Random.int 1 6000) )
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         , view = view
         , update = update
         }
