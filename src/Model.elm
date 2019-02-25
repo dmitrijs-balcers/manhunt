@@ -1,4 +1,4 @@
-module Model exposing (KeyboardAction, LocationsData, Model, Other, PlayerCoordinate)
+module Model exposing (KeyboardAction, LocationsData, Model, OtherKey(..), PlayerCoordinate)
 
 import Dict exposing (Dict)
 import Either exposing (Either)
@@ -20,11 +20,12 @@ type alias LocationsData =
 
 
 type alias KeyboardAction =
-    Either Direction Other
+    Either Direction OtherKey
 
 
-type alias Other =
-    String
+type OtherKey
+    = SpaceBar
+    | Other Int
 
 
 type alias PlayerCoordinate =

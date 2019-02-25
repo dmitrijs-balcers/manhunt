@@ -5,13 +5,12 @@ import Browser exposing (element)
 import Browser.Events
 import Dict exposing (Dict)
 import Either exposing (Either)
-import Html exposing (Html, button, div, h4, h5, img, text)
-import Html.Events exposing (onClick)
+import Html exposing (Attribute, Html, button, div, h4, h5, img, text)
+import Html.Events exposing (keyCode, onClick, preventDefaultOn)
 import Json.Decode as Decode
 import Map exposing (Action(..), Direction(..))
 import Maybe exposing (map, withDefault)
-import Maybe.Extra exposing (filter)
-import Model exposing (KeyboardAction, LocationsData, Model, Other, PlayerCoordinate)
+import Model exposing (KeyboardAction, LocationsData, Model, OtherKey(..), PlayerCoordinate)
 import Msg exposing (Msg(..))
 import Platform.Sub exposing (Sub)
 import Player exposing (Player)
@@ -46,8 +45,13 @@ update msg model =
                         Either.Left direction ->
                             Update.move model direction
 
-                        Either.Right _ ->
-                            ( model, Cmd.none )
+                        Either.Right other ->
+                            case other of
+                                SpaceBar ->
+                                    Update.gather model
+
+                                Other _ ->
+                                    ( model, Cmd.none )
 
         Perform action ->
             case enoughStamina model of
@@ -60,15 +64,7 @@ update msg model =
                             Update.move model direction
 
                         Map.Gather _ ->
-                            performAction model
-                                |> (\( locationsData, player ) ->
-                                        ( { model
-                                            | locationsData = locationsData
-                                            , player = Player.decreaseStamina player
-                                          }
-                                        , Cmd.none
-                                        )
-                                   )
+                            Update.gather model
 
         GenerateWorld randomNumber ->
             let
@@ -121,25 +117,6 @@ tooMuchStamina model =
            )
 
 
-performAction : Model -> ( LocationsData, Player )
-performAction model =
-    let
-        subtract : Maybe Map.LocationData -> Maybe Map.LocationData
-        subtract maybeLocationData =
-            maybeLocationData
-                |> map (\( data, Map.Amount a ) -> ( data, Map.Amount (a - 1) ))
-                |> filter (\( _, Map.Amount a ) -> a > 0)
-    in
-    positionToTuple model.player.position
-        |> (\position ->
-                ( Dict.update position subtract model.locationsData
-                , Dict.get position model.locationsData
-                    |> map (Player.updateItems model.player)
-                    |> withDefault model.player
-                )
-           )
-
-
 
 -- VIEW
 
@@ -160,7 +137,7 @@ view model =
         locationData =
             Dict.get playerCoordinate model.locationsData
     in
-    div []
+    div [ onKeyDown ]
         [ Map.viewLocation playerCoordinate model.worldData
         , viewMoveControls
         , Map.viewMap playerCoordinate model.worldData
@@ -208,39 +185,44 @@ viewMoveControls =
         ]
 
 
+toDirection : Int -> Msg
+toDirection key =
+    case Debug.log "pressed key#" key of
+        32 ->
+            Keyboard (Either.Right SpaceBar)
 
--- SUBSCRIPTIONS
+        37 ->
+            Keyboard (Either.Left West)
 
+        38 ->
+            Keyboard (Either.Left North)
 
-keyDecoder : Decode.Decoder KeyboardAction
-keyDecoder =
-    Decode.map toDirection (Decode.field "key" Decode.string)
+        39 ->
+            Keyboard (Either.Left East)
 
-
-toDirection : String -> Either Direction Other
-toDirection string =
-    case string of
-        "ArrowLeft" ->
-            Either.Left West
-
-        "ArrowRight" ->
-            Either.Left East
-
-        "ArrowUp" ->
-            Either.Left North
-
-        "ArrowDown" ->
-            Either.Left South
+        40 ->
+            Keyboard (Either.Left South)
 
         _ ->
-            Either.Right string
+            Keyboard (Either.Right (Other key))
+
+
+onKeyDown : Attribute Msg
+onKeyDown =
+    Decode.map toDirection keyCode
+        |> Decode.map alwaysPreventDefault
+        |> preventDefaultOn "keydown"
+
+
+alwaysPreventDefault : Msg -> ( Msg, Bool )
+alwaysPreventDefault msg =
+    ( msg, True )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Time.every 1000 Tick
-        , Browser.Events.onKeyDown (Decode.map Keyboard keyDecoder)
         ]
 
 

@@ -1,11 +1,12 @@
-module Update exposing (move, positionToTuple, refreshLocation)
+module Update exposing (gather, move, positionToTuple, refreshLocation)
 
 import Dict
 import Map exposing (Direction(..))
 import Maybe exposing (map, withDefault)
+import Maybe.Extra exposing (filter)
 import Model exposing (LocationsData, Model, PlayerCoordinate)
 import Msg exposing (Msg)
-import Player
+import Player exposing (Player)
 import Random
 
 
@@ -36,6 +37,38 @@ move model direction =
            )
     , Cmd.none
     )
+
+
+gather : Model -> ( Model, Cmd Msg )
+gather model =
+    performGather model
+        |> (\( locationsData, player ) ->
+                ( { model
+                    | locationsData = locationsData
+                    , player = Player.decreaseStamina player
+                  }
+                , Cmd.none
+                )
+           )
+
+
+performGather : Model -> ( LocationsData, Player )
+performGather model =
+    let
+        subtract : Maybe Map.LocationData -> Maybe Map.LocationData
+        subtract maybeLocationData =
+            maybeLocationData
+                |> map (\( data, Map.Amount a ) -> ( data, Map.Amount (a - 1) ))
+                |> filter (\( _, Map.Amount a ) -> a > 0)
+    in
+    positionToTuple model.player.position
+        |> (\position ->
+                ( Dict.update position subtract model.locationsData
+                , Dict.get position model.locationsData
+                    |> map (Player.updateItems model.player)
+                    |> withDefault model.player
+                )
+           )
 
 
 positionToTuple : Player.Position -> PlayerCoordinate
