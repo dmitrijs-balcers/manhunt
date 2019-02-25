@@ -185,31 +185,32 @@ viewMoveControls =
         ]
 
 
-toDirection : Int -> Msg
+toDirection : Int -> KeyboardAction
 toDirection key =
     case Debug.log "pressed key#" key of
-        32 ->
-            Keyboard (Either.Right SpaceBar)
-
         37 ->
-            Keyboard (Either.Left West)
+            Either.Left West
 
         38 ->
-            Keyboard (Either.Left North)
+            Either.Left North
 
         39 ->
-            Keyboard (Either.Left East)
+            Either.Left East
 
         40 ->
-            Keyboard (Either.Left South)
+            Either.Left South
+
+        32 ->
+            Either.Right SpaceBar
 
         _ ->
-            Keyboard (Either.Right (Other key))
+            Either.Right (Other key)
 
 
 onKeyDown : Attribute Msg
 onKeyDown =
     Decode.map toDirection keyCode
+        |> Decode.map Keyboard
         |> Decode.map alwaysPreventDefault
         |> preventDefaultOn "keydown"
 
@@ -222,8 +223,7 @@ alwaysPreventDefault msg =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 1000 Tick
-        ]
+        [ Time.every 1000 Tick ]
 
 
 main : Program () Model Msg
