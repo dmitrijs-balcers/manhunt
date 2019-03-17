@@ -22,7 +22,7 @@ import Html exposing (Html, button, div, img, text)
 import Html.Attributes exposing (src, style)
 import Html.Events exposing (onClick)
 import Random exposing (Generator, Seed)
-import Resource exposing (Resource(..), Resources)
+import Resource exposing (Resource, Resources)
 import SafeUtils exposing (findSafeInDict, findSafeInList)
 import Simplex
 
@@ -53,7 +53,7 @@ type alias World a =
 
 
 type alias LocationData =
-    ( ( Resource, Gather ), Resource.Amount )
+    ( Resource, Gather )
 
 
 type Action
@@ -147,24 +147,25 @@ generateLocationData (LandscapeId landscapeId) =
     genRandomLandscapeResource landscapeResources
         |> Random.andThen
             (\(LandscapeResource ( resourceAction, resources )) ->
-                genRandomResource resources
+                Resource.generateRandom resources
                     |> Random.andThen
-                        (\( Resource ( Resource.Name resourceName, Resource.Rarity rarity ), maxAmount ) ->
-                            genAmountChance maxAmount
+                        (\resource ->
+                            let
+                                rarity =
+                                    Resource.getRarity resource
+
+                                name =
+                                    Resource.getName resource
+                            in
+                            Resource.genAmountChance resource
                                 |> Random.map
                                     (\( amount, luck ) ->
                                         if amount > 0 && succeed luck rarity then
-                                            let
-                                                r =
-                                                    ( Resource ( Resource.Name resourceName, Resource.Rarity rarity )
-                                                    , resourceAction
-                                                    )
-                                            in
-                                            Just ( r, Resource.Amount amount )
+                                            Just ( Resource.generate name rarity amount, resourceAction )
 
                                         else
                                             Debug.log
-                                                (stringifyLandscapeFailure resourceName amount luck)
+                                                (stringifyLandscapeFailure name amount luck)
                                                 Nothing
                                     )
                         )
@@ -175,19 +176,6 @@ genRandomLandscapeResource : LandscapeResources -> Generator LandscapeResource
 genRandomLandscapeResource (LandscapeResources landscapeResources) =
     Random.int 0 (List.length landscapeResources - 1)
         |> Random.map (\id -> findSafeInList id landscapeResources)
-
-
-genRandomResource : Resource.Resources -> Generator ( Resource, Resource.Amount )
-genRandomResource resources =
-    Random.int 0 (Array.length resources - 1)
-        |> Random.map (\resourceId -> findSafeInDict resourceId resources)
-
-
-genAmountChance : Resource.Amount -> Generator ( Int, Float )
-genAmountChance (Resource.Amount maxAmount) =
-    Random.pair
-        (Random.int 0 maxAmount)
-        (Random.float 0 1)
 
 
 succeed : Float -> Float -> Bool
@@ -206,27 +194,14 @@ stringifyLandscapeFailure resourceName amount luck =
 
 
 stringifyLocationData : LocationData -> String
-stringifyLocationData locationData =
-    let
-        ( ( Resource ( Resource.Name name, _ ), _ ), Resource.Amount amount ) =
-            locationData
-    in
-    name ++ " " ++ String.fromInt amount
+stringifyLocationData ( resource, _ ) =
+    ( Resource.getName resource, Resource.getAmount resource )
+        |> (\( name, amount ) -> name ++ " " ++ String.fromInt amount)
 
 
 getItemFrom2dArray : ( Int, Int ) -> World a -> Maybe a
 getItemFrom2dArray ( lat, lon ) map =
     Array.get lat (Maybe.withDefault Array.empty (Array.get lon map))
-
-
-listToArray : List (List a) -> World a
-listToArray mapList =
-    let
-        mapper : List a -> World a -> World a
-        mapper resource mapArray =
-            Array.push (Array.fromList resource) mapArray
-    in
-    List.foldl mapper (Array.fromList []) mapList
 
 
 coordinateOnMap : ( Int, Int ) -> Int -> ( Int, Int )
@@ -392,8 +367,8 @@ viewLocationAction : (Action -> msg) -> LocationData -> Html msg
 viewLocationAction msg locationData =
     div []
         [ button
-            [ onClick (msg (Gather (Tuple.second (Tuple.first locationData)))) ]
-            [ text (stringifyAction (Tuple.second (Tuple.first locationData))) ]
+            [ onClick (msg (Gather (Tuple.second locationData))) ]
+            [ text (stringifyAction (Tuple.second locationData)) ]
         ]
 
 
@@ -408,17 +383,3 @@ stringifyAction action =
 
         Chop ->
             "Chop"
-
-
-stringifyResource : LandscapeId -> String
-stringifyResource (LandscapeId landscape) =
-    let
-        (Landscapes l) =
-            landscapes
-    in
-    case Array.get landscape l of
-        Just ( LandscapeName name, _ ) ->
-            name
-
-        Nothing ->
-            Debug.todo "No Landscape Found"

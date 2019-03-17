@@ -59,8 +59,8 @@ performGather model =
         subtract : Maybe Map.LocationData -> Maybe Map.LocationData
         subtract maybeLocationData =
             maybeLocationData
-                |> map (\( data, Resource.Amount a ) -> ( data, Resource.Amount (a - 1) ))
-                |> filter (\( _, Resource.Amount a ) -> a > 0)
+                |> map (\( resource, g ) -> ( Resource.takeOne resource, g ))
+                |> filter (\( resource, _ ) -> Resource.getAmount resource > 0)
     in
     positionToTuple model.player.position
         |> (\position ->

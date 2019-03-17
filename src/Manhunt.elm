@@ -153,9 +153,7 @@ viewPlayerItems player =
         , text (Debug.toString player.stamina)
         , div []
             (List.map
-                (\(Resource.Resource ( Resource.Name resourceName, _ )) ->
-                    div [] [ text resourceName ]
-                )
+                (\resource -> div [] [ text (Resource.getName resource) ])
                 player.items
             )
         ]

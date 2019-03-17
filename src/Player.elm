@@ -12,7 +12,7 @@ module Player exposing
 
 import Map exposing (Direction(..), LocationData)
 import Maybe exposing (map, withDefault)
-import Resource exposing (Resource(..))
+import Resource exposing (Resource)
 
 
 
@@ -74,7 +74,7 @@ updatePosition direction player =
 
 
 updateItems : Player -> LocationData -> Player
-updateItems player ( ( resource, _ ), _ ) =
+updateItems player ( resource, _ ) =
     { player
         | items = resource :: player.items
         , skills = increaseSkill player.skills
