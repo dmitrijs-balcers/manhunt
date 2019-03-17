@@ -12,6 +12,7 @@ module Player exposing
 
 import Map exposing (Direction(..), LocationData)
 import Maybe exposing (map, withDefault)
+import Resource exposing (Resource(..))
 
 
 
@@ -20,7 +21,7 @@ import Maybe exposing (map, withDefault)
 
 type alias Player =
     { position : Position
-    , items : List Map.Resource
+    , items : List Resource
     , skills : Skills
     , stamina : Stamina
     }

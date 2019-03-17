@@ -1,7 +1,6 @@
 module Msg exposing (Msg(..))
 
 import Map exposing (Action)
-import Model exposing (KeyboardAction)
 import Time
 
 

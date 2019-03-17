@@ -8,6 +8,7 @@ import Model exposing (LocationsData, Model, PlayerCoordinate)
 import Msg exposing (Msg)
 import Player exposing (Player)
 import Random
+import Resource
 
 
 move : Model -> Direction -> ( Model, Cmd Msg )
@@ -58,8 +59,8 @@ performGather model =
         subtract : Maybe Map.LocationData -> Maybe Map.LocationData
         subtract maybeLocationData =
             maybeLocationData
-                |> map (\( data, Map.Amount a ) -> ( data, Map.Amount (a - 1) ))
-                |> filter (\( _, Map.Amount a ) -> a > 0)
+                |> map (\( data, Resource.Amount a ) -> ( data, Resource.Amount (a - 1) ))
+                |> filter (\( _, Resource.Amount a ) -> a > 0)
     in
     positionToTuple model.player.position
         |> (\position ->

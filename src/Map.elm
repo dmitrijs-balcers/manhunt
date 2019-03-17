@@ -1,13 +1,9 @@
 module Map exposing
     ( Action(..)
-    , Amount(..)
     , Direction(..)
     , Gather(..)
     , Height
     , LocationData
-    , Rarity(..)
-    , Resource(..)
-    , ResourceName(..)
     , Size(..)
     , World
     , generateLocationData
@@ -22,13 +18,12 @@ module Map exposing
 
 import Array exposing (Array)
 import Debug
-import Dict exposing (Dict)
 import Html exposing (Html, button, div, img, text)
 import Html.Attributes exposing (src, style)
 import Html.Events exposing (onClick)
-import Random exposing (Generator, Seed, initialSeed, step)
+import Random exposing (Generator, Seed)
+import Resource exposing (Resource(..), Resources)
 import SafeUtils exposing (findSafeInDict, findSafeInList)
-import Set exposing (Set)
 import Simplex
 
 
@@ -45,18 +40,6 @@ type LandscapeId
     = LandscapeId Int
 
 
-type ResourceName
-    = ResourceName String
-
-
-type Rarity
-    = Rarity Float
-
-
-type Amount
-    = Amount Int
-
-
 type Height
     = Height Float
 
@@ -69,19 +52,8 @@ type alias World a =
     Array (Array a)
 
 
-type alias
-    Resources
-    -- shitty, but array (resource, maxAmount)
-    =
-    Array ( Resource, Amount )
-
-
-type Resource
-    = Resource ( ResourceName, Rarity )
-
-
 type alias LocationData =
-    ( ( Resource, Gather ), Amount )
+    ( ( Resource, Gather ), Resource.Amount )
 
 
 type Action
@@ -119,46 +91,6 @@ type Visibility
     = Visibility Int
 
 
-woodResources : Resources
-woodResources =
-    Array.fromList
-        [ ( Resource ( ResourceName "Oak", Rarity 0.1 ), Amount 10 )
-        , ( Resource ( ResourceName "Elm", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Birch", Rarity 0.5 ), Amount 10 )
-        , ( Resource ( ResourceName "Willow", Rarity 0.3 ), Amount 10 )
-        ]
-
-
-rockResources : Resources
-rockResources =
-    Array.fromList
-        [ ( Resource ( ResourceName "Steel", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Bronze", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Stone", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Gold", Rarity 0.001 ), Amount 2 )
-        ]
-
-
-flowers : Resources
-flowers =
-    Array.fromList
-        [ ( Resource ( ResourceName "Buttercup", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Daffodil", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Tulip", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "CommonDaisy", Rarity 0.25 ), Amount 10 )
-        ]
-
-
-mushrooms : Resources
-mushrooms =
-    Array.fromList
-        [ ( Resource ( ResourceName "Shiitake", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Chanterelle", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Agaricus", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( ResourceName "Enoki", Rarity 0.25 ), Amount 10 )
-        ]
-
-
 generateWorld : Size -> Seed -> World Height
 generateWorld (Size size) seed =
     let
@@ -187,17 +119,17 @@ landscapes =
         (Array.fromList
             [ ( LandscapeName "Field"
               , LandscapeResources
-                    [ LandscapeResource ( Pluck, flowers ) ]
+                    [ LandscapeResource ( Pluck, Resource.flowers ) ]
               )
             , ( LandscapeName "Forest"
               , LandscapeResources
-                    [ LandscapeResource ( Chop, woodResources )
-                    , LandscapeResource ( Pluck, mushrooms )
+                    [ LandscapeResource ( Chop, Resource.woodResources )
+                    , LandscapeResource ( Pluck, Resource.mushrooms )
                     ]
               )
             , ( LandscapeName "Hill"
               , LandscapeResources
-                    [ LandscapeResource ( Mine, rockResources ) ]
+                    [ LandscapeResource ( Mine, Resource.rockResources ) ]
               )
             ]
         )
@@ -217,18 +149,18 @@ generateLocationData (LandscapeId landscapeId) =
             (\(LandscapeResource ( resourceAction, resources )) ->
                 genRandomResource resources
                     |> Random.andThen
-                        (\( Resource ( ResourceName resourceName, Rarity rarity ), maxAmount ) ->
+                        (\( Resource ( Resource.Name resourceName, Resource.Rarity rarity ), maxAmount ) ->
                             genAmountChance maxAmount
                                 |> Random.map
                                     (\( amount, luck ) ->
                                         if amount > 0 && succeed luck rarity then
                                             let
                                                 r =
-                                                    ( Resource ( ResourceName resourceName, Rarity rarity )
+                                                    ( Resource ( Resource.Name resourceName, Resource.Rarity rarity )
                                                     , resourceAction
                                                     )
                                             in
-                                            Just ( r, Amount amount )
+                                            Just ( r, Resource.Amount amount )
 
                                         else
                                             Debug.log
@@ -245,14 +177,14 @@ genRandomLandscapeResource (LandscapeResources landscapeResources) =
         |> Random.map (\id -> findSafeInList id landscapeResources)
 
 
-genRandomResource : Resources -> Generator ( Resource, Amount )
+genRandomResource : Resource.Resources -> Generator ( Resource, Resource.Amount )
 genRandomResource resources =
     Random.int 0 (Array.length resources - 1)
         |> Random.map (\resourceId -> findSafeInDict resourceId resources)
 
 
-genAmountChance : Amount -> Generator ( Int, Float )
-genAmountChance (Amount maxAmount) =
+genAmountChance : Resource.Amount -> Generator ( Int, Float )
+genAmountChance (Resource.Amount maxAmount) =
     Random.pair
         (Random.int 0 maxAmount)
         (Random.float 0 1)
@@ -276,7 +208,7 @@ stringifyLandscapeFailure resourceName amount luck =
 stringifyLocationData : LocationData -> String
 stringifyLocationData locationData =
     let
-        ( ( Resource ( ResourceName name, _ ), action ), Amount amount ) =
+        ( ( Resource ( Resource.Name name, _ ), _ ), Resource.Amount amount ) =
             locationData
     in
     name ++ " " ++ String.fromInt amount

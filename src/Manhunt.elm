@@ -13,6 +13,7 @@ import Platform.Sub exposing (Sub)
 import Player exposing (Player)
 import Port
 import Random exposing (Seed, initialSeed)
+import Resource
 import Time
 import Update exposing (positionToTuple, refreshLocation)
 
@@ -152,7 +153,7 @@ viewPlayerItems player =
         , text (Debug.toString player.stamina)
         , div []
             (List.map
-                (\(Map.Resource ( Map.ResourceName resourceName, _ )) ->
+                (\(Resource.Resource ( Resource.Name resourceName, _ )) ->
                     div [] [ text resourceName ]
                 )
                 player.items
