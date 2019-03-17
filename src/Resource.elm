@@ -23,8 +23,8 @@ type alias Resources =
     Array Resource
 
 
-type alias Resource =
-    ( Name, Rarity, Amount )
+type Resource
+    = Resource Name Rarity Amount
 
 
 type Name
@@ -87,31 +87,31 @@ generateRandom resources =
 
 generate : String -> Float -> Int -> Resource
 generate name rarity amount =
-    ( Name name, Rarity rarity, Amount amount )
+    Resource (Name name) (Rarity rarity) (Amount amount)
 
 
 takeOne : Resource -> Resource
-takeOne ( Name name, Rarity rarity, Amount a ) =
+takeOne (Resource (Name name) (Rarity rarity) (Amount a)) =
     generate name rarity (a - 1)
 
 
 getAmount : Resource -> Int
-getAmount ( _, _, Amount amount ) =
+getAmount (Resource _ _ (Amount amount)) =
     amount
 
 
 getName : Resource -> String
-getName ( Name name, _, _ ) =
+getName (Resource (Name name) _ _) =
     name
 
 
 getRarity : Resource -> Float
-getRarity ( _, Rarity rarity, _ ) =
+getRarity (Resource _ (Rarity rarity) _) =
     rarity
 
 
 genAmountChance : Resource -> Generator ( Int, Float )
-genAmountChance ( _, _, Amount maxAmount ) =
+genAmountChance resource =
     Random.pair
-        (Random.int 0 maxAmount)
+        (Random.int 0 (getAmount resource))
         (Random.float 0 1)

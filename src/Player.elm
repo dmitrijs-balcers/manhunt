@@ -11,7 +11,6 @@ module Player exposing
     )
 
 import Map exposing (Direction(..), LocationData)
-import Maybe exposing (map, withDefault)
 import Resource exposing (Resource)
 
 
