@@ -7,6 +7,15 @@
   </head>
   <body>
     <div id="root" />
-    <script>Elm.Manhunt.init({ node: document.getElementById("root")})</script>
+    <script>
+      const app = Elm.Manhunt.init({ node: document.getElementById("root") })
+      document.onkeydown = (e) => {
+        if (["ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"].includes(e.key) || " " === e.key) {
+          e.preventDefault();
+        }
+        app.ports.keyboardEvent.send(e.key);
+      }
+
+    </script>
   </body>
 </html>

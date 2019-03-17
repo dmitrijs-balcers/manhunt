@@ -25,7 +25,7 @@ type alias KeyboardAction =
 
 type OtherKey
     = SpaceBar
-    | Other Int
+    | Other String
 
 
 type alias PlayerCoordinate =

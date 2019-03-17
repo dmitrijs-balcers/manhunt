@@ -2,18 +2,16 @@ module Manhunt exposing (main)
 
 import Array exposing (Array)
 import Browser exposing (element)
-import Browser.Events
 import Dict exposing (Dict)
 import Either exposing (Either)
-import Html exposing (Attribute, Html, button, div, h4, h5, img, text)
-import Html.Events exposing (keyCode, onClick, preventDefaultOn)
-import Json.Decode as Decode
+import Html exposing (Attribute, Html, button, div, h4, text)
+import Html.Events exposing (onClick)
 import Map exposing (Action(..), Direction(..))
-import Maybe exposing (map, withDefault)
 import Model exposing (KeyboardAction, LocationsData, Model, OtherKey(..), PlayerCoordinate)
 import Msg exposing (Msg(..))
 import Platform.Sub exposing (Sub)
 import Player exposing (Player)
+import Port
 import Random exposing (Seed, initialSeed)
 import Time
 import Update exposing (positionToTuple, refreshLocation)
@@ -41,7 +39,7 @@ update msg model =
                     ( model, Cmd.none )
 
                 Either.Right _ ->
-                    case keyAction of
+                    case toDirection keyAction of
                         Either.Left direction ->
                             Update.move model direction
 
@@ -137,7 +135,7 @@ view model =
         locationData =
             Dict.get playerCoordinate model.locationsData
     in
-    div [ onKeyDown ]
+    div []
         [ Map.viewLocation playerCoordinate model.worldData
         , viewMoveControls
         , Map.viewMap playerCoordinate model.worldData
@@ -185,45 +183,34 @@ viewMoveControls =
         ]
 
 
-toDirection : Int -> KeyboardAction
+toDirection : String -> KeyboardAction
 toDirection key =
     case Debug.log "pressed key#" key of
-        37 ->
+        "ArrowLeft" ->
             Either.Left West
 
-        38 ->
+        "ArrowUp" ->
             Either.Left North
 
-        39 ->
+        "ArrowRight" ->
             Either.Left East
 
-        40 ->
+        "ArrowDown" ->
             Either.Left South
 
-        32 ->
+        " " ->
             Either.Right SpaceBar
 
         _ ->
             Either.Right (Other key)
 
 
-onKeyDown : Attribute Msg
-onKeyDown =
-    Decode.map toDirection keyCode
-        |> Decode.map Keyboard
-        |> Decode.map alwaysPreventDefault
-        |> preventDefaultOn "keydown"
-
-
-alwaysPreventDefault : Msg -> ( Msg, Bool )
-alwaysPreventDefault msg =
-    ( msg, True )
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Time.every 1000 Tick ]
+        [ Time.every 1000 Tick
+        , Port.keyboardEvent Keyboard
+        ]
 
 
 main : Program () Model Msg

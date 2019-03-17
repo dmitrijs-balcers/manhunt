@@ -9,4 +9,4 @@ type Msg
     = Perform Action
     | GenerateWorld Int
     | Tick Time.Posix
-    | Keyboard KeyboardAction
+    | Keyboard String

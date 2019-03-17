@@ -8,5 +8,8 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dmitrijs-balcers/manhunt.git"
+  },
+  "devDependencies": {
+    "elm-live": "^3.4.0"
   }
 }
