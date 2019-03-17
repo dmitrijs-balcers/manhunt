@@ -26,38 +26,43 @@ type Amount
 woodResources : Resources
 woodResources =
     Array.fromList
-        [ ( Resource ( Name "Oak", Rarity 0.1 ), Amount 10 )
-        , ( Resource ( Name "Elm", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Birch", Rarity 0.5 ), Amount 10 )
-        , ( Resource ( Name "Willow", Rarity 0.3 ), Amount 10 )
+        [ generateResource "Oak" 0.1 10
+        , generateResource "Elm" 0.25 10
+        , generateResource "Birch" 0.5 10
+        , generateResource "Willow" 0.3 10
         ]
 
 
 rockResources : Resources
 rockResources =
     Array.fromList
-        [ ( Resource ( Name "Steel", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Bronze", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Stone", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Gold", Rarity 0.001 ), Amount 2 )
+        [ generateResource "Steel" 0.25 10
+        , generateResource "Bronze" 0.25 10
+        , generateResource "Stone" 0.25 10
+        , generateResource "Gold" 0.0 2
         ]
 
 
 flowers : Resources
 flowers =
     Array.fromList
-        [ ( Resource ( Name "Buttercup", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Daffodil", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Tulip", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "CommonDaisy", Rarity 0.25 ), Amount 10 )
+        [ generateResource "Buttercup" 0.25 10
+        , generateResource "Daffodil" 0.25 10
+        , generateResource "Tulip" 0.25 10
+        , generateResource "CommonDaisy" 0.25 10
         ]
 
 
 mushrooms : Resources
 mushrooms =
     Array.fromList
-        [ ( Resource ( Name "Shiitake", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Chanterelle", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Agaricus", Rarity 0.25 ), Amount 10 )
-        , ( Resource ( Name "Enoki", Rarity 0.25 ), Amount 10 )
+        [ generateResource "Shiitake" 0.25 10
+        , generateResource "Chanterelle" 0.25 10
+        , generateResource "Agaricus" 0.25 10
+        , generateResource "Enoki" 0.25 10
         ]
+
+
+generateResource : String -> Float -> Int -> ( Resource, Amount )
+generateResource name rarity amount =
+    ( Resource ( Name name, Rarity rarity ), Amount amount )
