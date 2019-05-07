@@ -1,7 +1,6 @@
-module Model exposing (KeyboardAction, LocationsData, Model, OtherKey(..), PlayerCoordinate)
+module Model exposing (LocationsData, Model, PlayerCoordinate)
 
 import Dict exposing (Dict)
-import Either exposing (Either)
 import Map exposing (Direction)
 import Player exposing (Player)
 import Random exposing (Seed)
@@ -17,15 +16,6 @@ type alias Model =
 
 type alias LocationsData =
     Dict PlayerCoordinate Map.LocationData
-
-
-type alias KeyboardAction =
-    Either Direction OtherKey
-
-
-type OtherKey
-    = SpaceBar
-    | Other String
 
 
 type alias PlayerCoordinate =

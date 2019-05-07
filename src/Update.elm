@@ -13,31 +13,39 @@ import Resource
 
 move : Model -> Direction -> ( Model, Cmd Msg )
 move model direction =
+    ( (updateWorldSeed >> movePlayer direction >> refreshLocationIfResourceMissing) model, Cmd.none )
+
+
+updateWorldSeed : Model -> Model
+updateWorldSeed model =
     let
         ( _, seed ) =
             Random.step (Random.int 1 6000) model.worldSeed
     in
-    ( { model
-        | worldSeed = seed
-        , player =
+    { model | worldSeed = seed }
+
+
+movePlayer : Direction -> Model -> Model
+movePlayer direction model =
+    { model
+        | player =
             model.player
                 |> Player.updatePosition direction
                 |> Player.decreaseStamina
-      }
-        |> (\m ->
-                positionToTuple m.player.position
-                    |> (\position -> Dict.get position m.locationsData)
-                    |> (\locationData ->
-                            case locationData of
-                                Nothing ->
-                                    { m | locationsData = refreshLocation m }
+    }
 
-                                Just _ ->
-                                    m
-                       )
-           )
-    , Cmd.none
-    )
+
+refreshLocationIfResourceMissing : Model -> Model
+refreshLocationIfResourceMissing model =
+    Maybe.withDefault
+        { model | locationsData = refreshLocation model }
+        (Maybe.map (\_ -> model) (getLocationData model))
+
+
+getLocationData : Model -> Maybe Map.LocationData
+getLocationData model =
+    positionToTuple model.player.position
+        |> (\position -> Dict.get position model.locationsData)
 
 
 gather : Model -> ( Model, Cmd Msg )

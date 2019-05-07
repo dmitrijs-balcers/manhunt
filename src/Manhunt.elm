@@ -7,7 +7,7 @@ import Either exposing (Either)
 import Html exposing (Attribute, Html, button, div, h4, text)
 import Html.Events exposing (onClick)
 import Map exposing (Action(..), Direction(..))
-import Model exposing (KeyboardAction, LocationsData, Model, OtherKey(..), PlayerCoordinate)
+import Model exposing (LocationsData, Model, PlayerCoordinate)
 import Msg exposing (Msg(..))
 import Platform.Sub exposing (Sub)
 import Player exposing (Player)
@@ -16,6 +16,16 @@ import Random exposing (Seed, initialSeed)
 import Resource
 import Time
 import Update exposing (positionToTuple, refreshLocation)
+
+
+type KeyboardAction
+    = Direction Direction
+    | OtherKey OtherKey
+
+
+type OtherKey
+    = SpaceBar
+    | Other String
 
 
 initialModel : Model
@@ -41,10 +51,10 @@ update msg model =
 
                 Either.Right _ ->
                     case toDirection keyAction of
-                        Either.Left direction ->
+                        Direction direction ->
                             Update.move model direction
 
-                        Either.Right other ->
+                        OtherKey other ->
                             case other of
                                 SpaceBar ->
                                     Update.gather model
@@ -186,22 +196,22 @@ toDirection : String -> KeyboardAction
 toDirection key =
     case Debug.log "pressed key#" key of
         "ArrowLeft" ->
-            Either.Left West
+            Direction West
 
         "ArrowUp" ->
-            Either.Left North
+            Direction North
 
         "ArrowRight" ->
-            Either.Left East
+            Direction East
 
         "ArrowDown" ->
-            Either.Left South
+            Direction South
 
         " " ->
-            Either.Right SpaceBar
+            OtherKey SpaceBar
 
         _ ->
-            Either.Right (Other key)
+            OtherKey (Other key)
 
 
 subscriptions : Model -> Sub Msg

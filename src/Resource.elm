@@ -24,58 +24,46 @@ type alias Resources =
 
 
 type Resource
-    = Resource Name Rarity Amount
-
-
-type Name
-    = Name String
-
-
-type Rarity
-    = Rarity Float
-
-
-type Amount
-    = Amount Int
+    = Resource String Float Int
 
 
 woodResources : Resources
 woodResources =
     Array.fromList
-        [ generate "Oak" 0.1 10
-        , generate "Elm" 0.25 10
-        , generate "Birch" 0.5 10
-        , generate "Willow" 0.3 10
+        [ Resource "Oak" 0.1 10
+        , Resource "Elm" 0.25 10
+        , Resource "Birch" 0.5 10
+        , Resource "Willow" 0.3 10
         ]
 
 
 rockResources : Resources
 rockResources =
     Array.fromList
-        [ generate "Steel" 0.25 10
-        , generate "Bronze" 0.25 10
-        , generate "Stone" 0.25 10
-        , generate "Gold" 0.0 2
+        [ Resource "Steel" 0.25 10
+        , Resource "Bronze" 0.25 10
+        , Resource "Stone" 0.25 10
+        , Resource "Gold" 0.0 2
         ]
 
 
 flowers : Resources
 flowers =
     Array.fromList
-        [ generate "Buttercup" 0.25 10
-        , generate "Daffodil" 0.25 10
-        , generate "Tulip" 0.25 10
-        , generate "CommonDaisy" 0.25 10
+        [ Resource "Buttercup" 0.25 10
+        , Resource "Daffodil" 0.25 10
+        , Resource "Tulip" 0.25 10
+        , Resource "CommonDaisy" 0.25 10
         ]
 
 
 mushrooms : Resources
 mushrooms =
     Array.fromList
-        [ generate "Shiitake" 0.25 10
-        , generate "Chanterelle" 0.25 10
-        , generate "Agaricus" 0.25 10
-        , generate "Enoki" 0.25 10
+        [ Resource "Shiitake" 0.25 10
+        , Resource "Chanterelle" 0.25 10
+        , Resource "Agaricus" 0.25 10
+        , Resource "Enoki" 0.25 10
         ]
 
 
@@ -87,26 +75,26 @@ generateRandom resources =
 
 generate : String -> Float -> Int -> Resource
 generate name rarity amount =
-    Resource (Name name) (Rarity rarity) (Amount amount)
+    Resource name rarity amount
 
 
 takeOne : Resource -> Resource
-takeOne (Resource (Name name) (Rarity rarity) (Amount a)) =
-    generate name rarity (a - 1)
+takeOne (Resource name rarity amount) =
+    generate name rarity (amount - 1)
 
 
 getAmount : Resource -> Int
-getAmount (Resource _ _ (Amount amount)) =
+getAmount (Resource _ _ amount) =
     amount
 
 
 getName : Resource -> String
-getName (Resource (Name name) _ _) =
+getName (Resource name _ _) =
     name
 
 
 getRarity : Resource -> Float
-getRarity (Resource _ (Rarity rarity) _) =
+getRarity (Resource _ rarity _) =
     rarity
 
 
