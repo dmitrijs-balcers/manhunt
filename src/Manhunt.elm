@@ -13,7 +13,7 @@ import Platform.Sub exposing (Sub)
 import Player exposing (Player)
 import Port
 import Random exposing (Seed, initialSeed)
-import Resource
+import Resource exposing (Resource)
 import Time
 import Update exposing (positionToTuple, refreshLocation)
 
@@ -157,15 +157,16 @@ view model =
 
 viewPlayerItems : Player -> Html Msg
 viewPlayerItems player =
+    let
+        mapResource : String -> ( Resource, Int ) -> Html msg
+        mapResource name ( _, amount ) =
+            div [] [ text name, text (String.fromInt amount) ]
+    in
     div []
         [ h4 [] [ text "Items:" ]
         , text (Debug.toString player.skills)
         , text (Debug.toString player.stamina)
-        , div []
-            (List.map
-                (\resource -> div [] [ text (Resource.getName resource) ])
-                player.items
-            )
+        , div [] (Dict.values (Dict.map mapResource player.items))
         ]
 
 

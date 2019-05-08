@@ -10,8 +10,9 @@ module Player exposing
     , updatePosition
     )
 
+import Dict exposing (Dict)
 import Map exposing (Direction(..), LocationData)
-import Resource exposing (Resource)
+import Resource exposing (Resource, getName)
 
 
 
@@ -20,7 +21,7 @@ import Resource exposing (Resource)
 
 type alias Player =
     { position : Position
-    , items : List Resource
+    , items : Dict String ( Resource, Int )
     , skills : Skills
     , stamina : Stamina
     }
@@ -41,7 +42,7 @@ type Stamina
 initialState : Player
 initialState =
     { position = { lat = 0, lon = 0 }
-    , items = []
+    , items = Dict.empty
     , skills = { strength = 0 }
     , stamina = Stamina 100 -- should increase after some time
     }
@@ -74,8 +75,18 @@ updatePosition direction player =
 
 updateItems : Player -> LocationData -> Player
 updateItems player ( resource, _ ) =
+    let
+        update : Maybe ( Resource, Int ) -> Maybe ( Resource, Int )
+        update c =
+            case c of
+                Just ( r, a ) ->
+                    Just ( r, a + 1 )
+
+                Nothing ->
+                    Just ( resource, 1 )
+    in
     { player
-        | items = resource :: player.items
+        | items = Dict.update (getName resource) update player.items
         , skills = increaseSkill player.skills
     }
 

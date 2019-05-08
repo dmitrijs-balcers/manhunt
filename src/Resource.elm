@@ -83,14 +83,14 @@ takeOne (Resource name rarity amount) =
     generate name rarity (amount - 1)
 
 
-getAmount : Resource -> Int
-getAmount (Resource _ _ amount) =
-    amount
-
-
 getName : Resource -> String
 getName (Resource name _ _) =
     name
+
+
+getAmount : Resource -> Int
+getAmount (Resource _ _ amount) =
+    amount
 
 
 getRarity : Resource -> Float
