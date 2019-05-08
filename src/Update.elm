@@ -18,11 +18,7 @@ move model direction =
 
 updateWorldSeed : Model -> Model
 updateWorldSeed model =
-    let
-        ( _, seed ) =
-            Random.step (Random.int 1 6000) model.worldSeed
-    in
-    { model | worldSeed = seed }
+    { model | worldSeed = Tuple.second (Random.step (Random.int 1 6000) model.worldSeed) }
 
 
 movePlayer : Direction -> Model -> Model
@@ -37,9 +33,8 @@ movePlayer direction model =
 
 refreshLocationIfResourceMissing : Model -> Model
 refreshLocationIfResourceMissing model =
-    Maybe.withDefault
-        { model | locationsData = refreshLocation model }
-        (Maybe.map (\_ -> model) (getLocationData model))
+    Maybe.map (\_ -> model) (getLocationData model)
+        |> Maybe.withDefault { model | locationsData = refreshLocation model }
 
 
 getLocationData : Model -> Maybe Map.LocationData
