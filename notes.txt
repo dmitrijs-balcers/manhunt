@@ -1,0 +1,96 @@
+
+
+type alias WoodResources =
+    { oak : Resource WoodResource
+    , elm : Resource WoodResource
+    , birch : Resource WoodResource
+    , willow : Resource WoodResource
+    }
+
+
+type WoodResource
+    = Oak
+    | Elm
+    | Birch
+    | Willow
+
+
+woodResources : WoodResources
+woodResources =
+    { oak = Resource Oak 0.1 10
+    , elm = Resource Elm 0.25 10
+    , birch = Resource Birch 0.5 10
+    , willow = Resource Willow 0.3 10
+    }
+
+
+type alias RockResources =
+    { steel : Resource RockResource
+    , bronze : Resource RockResource
+    , stone : Resource RockResource
+    , gold : Resource RockResource
+    }
+
+
+type RockResource
+    = Steel
+    | Bronze
+    | Stone
+    | Gold
+
+
+rockResources : RockResources
+rockResources =
+    { steel = Resource Steel 0.25 10
+    , bronze = Resource Bronze 0.25 10
+    , stone = Resource Stone 0.25 10
+    , gold = Resource Gold 0.0 2
+    }
+
+
+type alias FlowerResources =
+    { buttercup : Resource FlowerResource
+    , daffodil : Resource FlowerResource
+    , tulip : Resource FlowerResource
+    , commonDaisy : Resource FlowerResource
+    }
+
+
+type FlowerResource
+    = Buttercup
+    | Daffodil
+    | Tulip
+    | CommonDaisy
+
+
+flowers : FlowerResources
+flowers =
+    { buttercup = Resource Buttercup 0.25 10
+    , daffodil = Resource Daffodil 0.25 10
+    , tulip = Resource Tulip 0.25 10
+    , commonDaisy = Resource CommonDaisy 0.25 10
+    }
+
+
+type alias MushroomResources =
+    { shiitake : Resource MushroomResource
+    , chanterelle : Resource MushroomResource
+    , agaricus : Resource MushroomResource
+    , enoki : Resource MushroomResource
+    }
+
+
+type MushroomResource
+    = Shiitake
+    | Chanterelle
+    | Agaricus
+    | Enoki
+
+
+mushrooms : MushroomResources
+mushrooms =
+    { shiitake = Resource Shiitake 0.25 10
+    , chanterelle = Resource Chanterelle 0.25 10
+    , agaricus = Resource Agaricus 0.25 10
+    , enoki = Resource Enoki 0.25 10
+    }
