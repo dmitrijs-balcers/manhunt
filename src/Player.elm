@@ -12,7 +12,7 @@ module Player exposing
 
 import Dict exposing (Dict)
 import Map exposing (Direction(..), LocationData)
-import Resource exposing (Resource, getName)
+import Resource exposing (Resource)
 
 
 
@@ -86,7 +86,7 @@ updateItems player ( resource, _ ) =
                     Just ( resource, 1 )
     in
     { player
-        | items = Dict.update (getName resource) update player.items
+        | items = Dict.update (Resource.getResourceName resource) update player.items
         , skills = increaseSkill player.skills
     }
 

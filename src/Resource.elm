@@ -6,12 +6,13 @@ module Resource exposing
     , generate
     , generateRandom
     , getAmount
-    , getName
     , getRarity
+    , getResourceName
     , mushrooms
     , rockResources
     , takeOne
     , woodResources
+    , woodToString
     )
 
 import Array exposing (Array)
@@ -24,46 +25,79 @@ type alias Resources =
 
 
 type Resource
-    = Resource String Float Int
+    = Wood Wood Float Int
+    | Rock Rock Float Int
+    | Flower Flower Float Int
+    | Mushroom Mushroom Float Int
+
+
+type Wood
+    = Oak
+    | Elm
+    | Birch
+    | Willow
 
 
 woodResources : Resources
 woodResources =
     Array.fromList
-        [ Resource "Oak" 0.1 10
-        , Resource "Elm" 0.25 10
-        , Resource "Birch" 0.5 10
-        , Resource "Willow" 0.3 10
+        [ Wood Oak 0.1 10
+        , Wood Elm 0.25 10
+        , Wood Birch 0.5 10
+        , Wood Willow 0.3 10
         ]
+
+
+type Rock
+    = Steel
+    | Bronze
+    | Stone
+    | Gold
 
 
 rockResources : Resources
 rockResources =
     Array.fromList
-        [ Resource "Steel" 0.25 10
-        , Resource "Bronze" 0.25 10
-        , Resource "Stone" 0.25 10
-        , Resource "Gold" 0.0 2
+        [ Rock Steel 0.25 10
+        , Rock Bronze 0.25 10
+        , Rock Stone 0.25 10
+        , Rock Gold 0.25 2
         ]
+
+
+type Flower
+    = Buttercup
+    | Daffodil
+    | Tulip
+    | CommonDaisy
+    | Rose
 
 
 flowers : Resources
 flowers =
     Array.fromList
-        [ Resource "Buttercup" 0.25 10
-        , Resource "Daffodil" 0.25 10
-        , Resource "Tulip" 0.25 10
-        , Resource "CommonDaisy" 0.25 10
+        [ Flower Buttercup 0.25 10
+        , Flower Daffodil 0.25 10
+        , Flower Tulip 0.25 10
+        , Flower CommonDaisy 0.13 10
+        , Flower Rose 0.13 10
         ]
+
+
+type Mushroom
+    = Shiitake
+    | Chanterelle
+    | Agaricus
+    | Enoki
 
 
 mushrooms : Resources
 mushrooms =
     Array.fromList
-        [ Resource "Shiitake" 0.25 10
-        , Resource "Chanterelle" 0.25 10
-        , Resource "Agaricus" 0.25 10
-        , Resource "Enoki" 0.25 10
+        [ Mushroom Shiitake 0.25 10
+        , Mushroom Chanterelle 0.25 10
+        , Mushroom Agaricus 0.25 10
+        , Mushroom Enoki 0.25 10
         ]
 
 
@@ -73,29 +107,151 @@ generateRandom resources =
         |> Random.map (\resourceId -> findSafeInDict resourceId resources)
 
 
-generate : String -> Float -> Int -> Resource
-generate name rarity amount =
-    Resource name rarity amount
+generate : Resource -> Int -> Resource
+generate resource amount =
+    case resource of
+        Wood name r _ ->
+            Wood name r amount
+
+        Rock name r _ ->
+            Rock name r amount
+
+        Flower name r _ ->
+            Flower name r amount
+
+        Mushroom name r _ ->
+            Mushroom name r amount
 
 
 takeOne : Resource -> Resource
-takeOne (Resource name rarity amount) =
-    generate name rarity (amount - 1)
+takeOne resource =
+    case resource of
+        Wood name rarity amount ->
+            Wood name rarity (amount - 1)
+
+        Rock name rarity amount ->
+            Rock name rarity (amount - 1)
+
+        Flower name rarity amount ->
+            Flower name rarity (amount - 1)
+
+        Mushroom name rarity amount ->
+            Mushroom name rarity (amount - 1)
 
 
-getName : Resource -> String
-getName (Resource name _ _) =
-    name
+woodToString : Wood -> String
+woodToString wood =
+    case wood of
+        Oak ->
+            "Oak"
+
+        Elm ->
+            "Elm"
+
+        Birch ->
+            "Birch"
+
+        Willow ->
+            "Willow"
+
+
+rockToString : Rock -> String
+rockToString rock =
+    case rock of
+        Steel ->
+            "Steel"
+
+        Bronze ->
+            "Bronze"
+
+        Stone ->
+            "Stone"
+
+        Gold ->
+            "Gold"
+
+
+flowerToString : Flower -> String
+flowerToString flower =
+    case flower of
+        Buttercup ->
+            "Buttercup"
+
+        Daffodil ->
+            "Daffodil"
+
+        Tulip ->
+            "Tulip"
+
+        CommonDaisy ->
+            "CommonDaisy"
+
+        Rose ->
+            "Rose"
+
+
+mushroomToString : Mushroom -> String
+mushroomToString mushroom =
+    case mushroom of
+        Shiitake ->
+            "Shiitake"
+
+        Chanterelle ->
+            "Chanterelle"
+
+        Agaricus ->
+            "Agaricus"
+
+        Enoki ->
+            "Enoki"
+
+
+getResourceName : Resource -> String
+getResourceName resource =
+    case resource of
+        Wood n _ _ ->
+            woodToString n
+
+        Rock n _ _ ->
+            rockToString n
+
+        Flower n _ _ ->
+            flowerToString n
+
+        Mushroom n _ _ ->
+            mushroomToString n
 
 
 getAmount : Resource -> Int
-getAmount (Resource _ _ amount) =
-    amount
+getAmount resource =
+    case resource of
+        Wood _ _ a ->
+            a
+
+        Rock _ _ a ->
+            a
+
+        Flower _ _ a ->
+            a
+
+        Mushroom _ _ a ->
+            a
 
 
 getRarity : Resource -> Float
-getRarity (Resource _ rarity _) =
-    rarity
+getRarity resource =
+    case resource of
+        Wood _ r _ ->
+            r
+
+        Rock _ r _ ->
+            r
+
+        Flower _ r _ ->
+            r
+
+        Mushroom _ r _ ->
+            r
 
 
 genAmountChance : Resource -> Generator ( Int, Float )

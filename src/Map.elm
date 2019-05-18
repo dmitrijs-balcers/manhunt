@@ -155,13 +155,13 @@ generateLocationData (LandscapeId landscapeId) =
                                     Resource.getRarity resource
 
                                 name =
-                                    Resource.getName resource
+                                    Resource.getResourceName resource
                             in
                             Resource.genAmountChance resource
                                 |> Random.map
                                     (\( amount, luck ) ->
                                         if amount > 0 && succeed luck rarity then
-                                            Just ( Resource.generate name rarity amount, resourceAction )
+                                            Just ( Resource.generate resource amount, resourceAction )
 
                                         else
                                             Debug.log
@@ -195,7 +195,7 @@ stringifyLandscapeFailure resourceName amount luck =
 
 stringifyLocationData : LocationData -> String
 stringifyLocationData ( resource, _ ) =
-    ( Resource.getName resource, Resource.getAmount resource )
+    ( Resource.getResourceName resource, Resource.getAmount resource )
         |> (\( name, amount ) -> name ++ " " ++ String.fromInt amount)
 
 
