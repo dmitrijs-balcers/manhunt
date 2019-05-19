@@ -7,6 +7,7 @@ module Resource exposing
     , Resources
     , Rock
     , Wood
+    , alchemyResource
     , flowerEffect
     , flowers
     , genAmountChance
@@ -15,7 +16,6 @@ module Resource exposing
     , getAmount
     , getRarity
     , getResourceName
-    , isAlchemyResource
     , isSmithingResource
     , mushrooms
     , rockResources
@@ -47,8 +47,8 @@ type Wood
     | Willow
 
 
-isAlchemyResource : Resource -> Maybe Resource
-isAlchemyResource resource =
+alchemyResource : Resource -> Maybe Resource
+alchemyResource resource =
     case resource of
         Flower _ _ _ ->
             Just resource

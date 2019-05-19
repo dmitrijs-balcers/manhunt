@@ -1,8 +1,14 @@
 module Craft exposing
     ( AlchemyModel
+    , AlchemyResource
+    , Craft(..)
     , Potion
     , SelectedCraft
     , SmithModel
+    , SmithResource
+    , addAlchemyResource
+    , addToAlchemyCraft
+    , addToSmithingCraft
     , noCraftSelected
     , selectAlchemy
     , selectCraft
@@ -12,8 +18,12 @@ module Craft exposing
     )
 
 import Html exposing (Html, button, div, text)
-import Msg exposing (Craft(..))
-import Resource exposing (Effect, Flower, Intensity, Mushroom, Resource, Rock, flowerEffect, isAlchemyResource, isSmithingResource)
+import Resource exposing (Effect, Flower, Intensity, Mushroom, Resource, Rock, alchemyResource, flowerEffect, isSmithingResource)
+
+
+type Craft
+    = Alchemy
+    | Smith
 
 
 type SelectedCraft
@@ -78,6 +88,36 @@ initializeCraftingModel =
     }
 
 
+addToAlchemyCraft : SelectedCraft -> AlchemyResource -> SelectedCraft
+addToAlchemyCraft craft resource =
+    case craft of
+        AlchemyCraft alchemyModel ->
+            AlchemyCraft (addAlchemyResource alchemyModel resource)
+
+        _ ->
+            craft
+
+
+addAlchemyResource : CrafringModel AlchemyResource -> AlchemyResource -> CrafringModel AlchemyResource
+addAlchemyResource model res =
+    { model | items = res :: model.items }
+
+
+addToSmithingCraft : SelectedCraft -> SmithResource -> SelectedCraft
+addToSmithingCraft craft resource =
+    case craft of
+        SmithingCraft smithModel ->
+            SmithingCraft (addSmithingResource smithModel resource)
+
+        _ ->
+            craft
+
+
+addSmithingResource : CrafringModel SmithResource -> SmithResource -> CrafringModel SmithResource
+addSmithingResource model res =
+    { model | items = res :: model.items }
+
+
 type SmithResource
     = SmithResource Rock
 
@@ -112,7 +152,7 @@ viewCraftButton : SelectedCraft -> Resource -> Html msg
 viewCraftButton craft resource =
     case craft of
         AlchemyCraft _ ->
-            isAlchemyResource resource
+            alchemyResource resource
                 |> Maybe.map (\r -> button [] [ text "+" ])
                 |> Maybe.withDefault (text "")
 

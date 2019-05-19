@@ -2,7 +2,7 @@ module Manhunt exposing (main)
 
 import Array exposing (Array)
 import Browser exposing (element)
-import Craft exposing (SelectedCraft, selectCraft, viewCraft, viewCraftButton)
+import Craft exposing (Craft(..), SelectedCraft, addToAlchemyCraft, addToSmithingCraft, selectCraft, viewCraft, viewCraftButton)
 import Dict exposing (Dict)
 import Either exposing (Either)
 import Html exposing (Attribute, Html, a, button, div, h4, text)
@@ -10,7 +10,7 @@ import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Map exposing (Action(..), Direction(..))
 import Model exposing (LocationsData, Model, PlayerCoordinate, initialModel)
-import Msg exposing (Craft(..), Msg(..))
+import Msg exposing (Msg(..))
 import Platform.Sub exposing (Sub)
 import Player exposing (Player)
 import Port
@@ -96,6 +96,12 @@ update msg model =
 
         SelectCraft craft ->
             ( { model | craft = selectCraft model.craft craft }, Cmd.none )
+
+        AddToAlchemyCraft resource ->
+            ( { model | craft = addToAlchemyCraft model.craft resource }, Cmd.none )
+
+        AddToSmithingCraft resource ->
+            ( { model | craft = addToSmithingCraft model.craft resource }, Cmd.none )
 
 
 enoughStamina : Model -> Either Model Model

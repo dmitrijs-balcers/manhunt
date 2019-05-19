@@ -1,5 +1,6 @@
-module Msg exposing (Craft(..), Msg(..))
+module Msg exposing (Msg(..))
 
+import Craft exposing (AlchemyResource, Craft, SmithResource)
 import Map exposing (Action)
 import Time
 
@@ -10,8 +11,5 @@ type Msg
     | Tick Time.Posix
     | Keyboard String
     | SelectCraft Craft
-
-
-type Craft
-    = Alchemy
-    | Smith
+    | AddToAlchemyCraft AlchemyResource
+    | AddToSmithingCraft SmithResource
