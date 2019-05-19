@@ -69,6 +69,7 @@ performGather model =
         |> (\position ->
                 ( Dict.update position subtract model.locationsData
                 , Dict.get position model.locationsData
+                    |> map Map.getLocationResource
                     |> map (Player.updateItems model.player)
                     |> withDefault model.player
                 )

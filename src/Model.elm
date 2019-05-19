@@ -6,7 +6,7 @@ module Model exposing
     )
 
 import Array
-import Craft exposing (AlchemyModel, SelectedCraft, SmithModel, initializeAlchemy, initializeSmithing, noCraftSelected)
+import Craft exposing (AlchemyModel, SelectedCraft, SmithModel, noCraftSelected)
 import Dict exposing (Dict)
 import Map exposing (Direction)
 import Player exposing (Player)

@@ -9,6 +9,7 @@ module Map exposing
     , generateLocationData
     , generateWorld
     , getLandscape
+    , getLocationResource
     , landscapeToString
     , stringifyLocationData
     , viewLocation
@@ -133,6 +134,11 @@ landscapes =
               )
             ]
         )
+
+
+getLocationResource : LocationData -> Resource
+getLocationResource ( resource, _ ) =
+    resource
 
 
 generateLocationData : LandscapeId -> Generator (Maybe LocationData)

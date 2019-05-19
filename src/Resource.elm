@@ -15,6 +15,8 @@ module Resource exposing
     , getAmount
     , getRarity
     , getResourceName
+    , isAlchemyResource
+    , isSmithingResource
     , mushrooms
     , rockResources
     , takeOne
@@ -43,6 +45,29 @@ type Wood
     | Elm
     | Birch
     | Willow
+
+
+isAlchemyResource : Resource -> Maybe Resource
+isAlchemyResource resource =
+    case resource of
+        Flower _ _ _ ->
+            Just resource
+
+        Mushroom _ _ _ ->
+            Just resource
+
+        _ ->
+            Nothing
+
+
+isSmithingResource : Resource -> Maybe Resource
+isSmithingResource resource =
+    case resource of
+        Rock _ _ _ ->
+            Just resource
+
+        _ ->
+            Nothing
 
 
 woodResources : Resources

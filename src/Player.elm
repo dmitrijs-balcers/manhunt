@@ -73,8 +73,8 @@ updatePosition direction player =
     { player | position = upd player.position direction }
 
 
-updateItems : Player -> LocationData -> Player
-updateItems player ( resource, _ ) =
+updateItems : Player -> Resource -> Player
+updateItems player resource =
     let
         update : Maybe ( Resource, Int ) -> Maybe ( Resource, Int )
         update c =

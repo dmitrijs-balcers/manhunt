@@ -2,7 +2,7 @@ module Manhunt exposing (main)
 
 import Array exposing (Array)
 import Browser exposing (element)
-import Craft exposing (SelectedCraft, selectAlchemy, selectCraft, selectSmith, viewCraft)
+import Craft exposing (SelectedCraft, selectCraft, viewCraft, viewCraftButton)
 import Dict exposing (Dict)
 import Either exposing (Either)
 import Html exposing (Attribute, Html, a, button, div, h4, text)
@@ -153,7 +153,7 @@ view model =
             , viewMoveControls
             , Map.viewMap playerCoordinate model.worldData
             , viewResources locationData
-            , viewPlayerItems model.player
+            , viewPlayerItems model.player model.craft
             ]
         , div sectionStyle
             [ div []
@@ -187,22 +187,22 @@ sectionStyle =
     ]
 
 
-viewPlayerItems : Player -> Html Msg
-viewPlayerItems player =
+viewPlayerItems : Player -> SelectedCraft -> Html Msg
+viewPlayerItems player craft =
     div []
         [ h4 [] [ text "Items:" ]
         , text (Debug.toString player.skills)
         , text (Debug.toString player.stamina)
-        , div [] (Dict.values (Dict.map viewResource player.items))
+        , div [] (Dict.values (Dict.map (viewResource craft) player.items))
         ]
 
 
-viewResource : String -> ( Resource, Int ) -> Html msg
-viewResource name ( _, amount ) =
+viewResource : SelectedCraft -> String -> ( Resource, Int ) -> Html msg
+viewResource craft name ( resource, amount ) =
     div []
         [ text name
         , text (String.fromInt amount)
-        , div [] [ button [] [ text "+" ], button [] [ text "-" ] ]
+        , div [] [ viewCraftButton craft resource ]
         ]
 
 
