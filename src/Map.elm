@@ -273,7 +273,7 @@ viewMap ( lat, lon ) worldMap =
     generateMiniMap coordinate visibility worldMap
         |> Array.indexedMap (viewRow 5)
         |> Array.toList
-        |> div []
+        |> div [ style "display" "inline-flex", style "flex-direction" "column" ]
 
 
 generateMiniMap : ( Int, Int ) -> Visibility -> World a -> World a
@@ -303,7 +303,7 @@ cutRow ( latFrom, latTo ) row =
 viewRow : Int -> Int -> Array Height -> Html msg
 viewRow middle rowIndex row =
     div
-        [ style "display" "block"
+        [ style "display" "inline-block"
         , style "height" "32px"
         ]
         (Array.toList row
@@ -324,6 +324,7 @@ viewColumn { middle, rowIndex } columnIndex height =
     in
     div
         [ style "display" "inline-block"
+        , style "width" "32px"
         , inversionStyle
         ]
         [ landscapeToImg height ]
@@ -356,7 +357,10 @@ viewLocation pos worldMap =
     case getItemFrom2dArray (coordinateOnMap pos (Array.length worldMap)) worldMap of
         Just landscape ->
             div
-                [ style "color" "red" ]
+                [ style "color" "red"
+                , style "text-align" "center"
+                , style "font-weight" "bold"
+                ]
                 [ text ("Location: " ++ landscapeToString landscape ++ " " ++ coordinateToString pos) ]
 
         Nothing ->

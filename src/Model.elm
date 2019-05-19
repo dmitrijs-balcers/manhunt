@@ -1,16 +1,34 @@
-module Model exposing (LocationsData, Model, PlayerCoordinate)
+module Model exposing
+    ( LocationsData
+    , Model
+    , PlayerCoordinate
+    , initialModel
+    )
 
+import Array
+import Craft exposing (AlchemyModel, SelectedCraft, SmithModel, initializeAlchemy, initializeSmithing, noCraftSelected)
 import Dict exposing (Dict)
 import Map exposing (Direction)
 import Player exposing (Player)
-import Random exposing (Seed)
+import Random
 
 
 type alias Model =
     { player : Player
     , locationsData : LocationsData
     , worldData : Map.World Map.Height
-    , worldSeed : Seed
+    , worldSeed : Random.Seed
+    , craft : SelectedCraft
+    }
+
+
+initialModel : Model
+initialModel =
+    { player = Player.initialState
+    , locationsData = Dict.empty
+    , worldData = Array.empty
+    , worldSeed = Random.initialSeed 0
+    , craft = noCraftSelected
     }
 
 

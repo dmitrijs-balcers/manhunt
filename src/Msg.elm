@@ -1,4 +1,4 @@
-module Msg exposing (Msg(..))
+module Msg exposing (Craft(..), Msg(..))
 
 import Map exposing (Action)
 import Time
@@ -9,3 +9,9 @@ type Msg
     | GenerateWorld Int
     | Tick Time.Posix
     | Keyboard String
+    | SelectCraft Craft
+
+
+type Craft
+    = Alchemy
+    | Smith

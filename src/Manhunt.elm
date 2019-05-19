@@ -2,13 +2,15 @@ module Manhunt exposing (main)
 
 import Array exposing (Array)
 import Browser exposing (element)
+import Craft exposing (SelectedCraft, selectAlchemy, selectCraft, selectSmith, viewCraft)
 import Dict exposing (Dict)
 import Either exposing (Either)
-import Html exposing (Attribute, Html, button, div, h4, text)
+import Html exposing (Attribute, Html, a, button, div, h4, text)
+import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Map exposing (Action(..), Direction(..))
-import Model exposing (LocationsData, Model, PlayerCoordinate)
-import Msg exposing (Msg(..))
+import Model exposing (LocationsData, Model, PlayerCoordinate, initialModel)
+import Msg exposing (Craft(..), Msg(..))
 import Platform.Sub exposing (Sub)
 import Player exposing (Player)
 import Port
@@ -26,15 +28,6 @@ type KeyboardAction
 type OtherKey
     = SpaceBar
     | Other String
-
-
-initialModel : Model
-initialModel =
-    { player = Player.initialState
-    , locationsData = Dict.empty
-    , worldData = Array.empty
-    , worldSeed = initialSeed 0
-    }
 
 
 
@@ -94,12 +87,15 @@ update msg model =
             )
 
         Tick posix ->
-            case tooMuchStamina model of
+            case fullStamina model of
                 Either.Left _ ->
                     ( model, Cmd.none )
 
                 Either.Right _ ->
                     ( { model | player = Player.increaseStamina model.player }, Cmd.none )
+
+        SelectCraft craft ->
+            ( { model | craft = selectCraft model.craft craft }, Cmd.none )
 
 
 enoughStamina : Model -> Either Model Model
@@ -114,8 +110,8 @@ enoughStamina model =
            )
 
 
-tooMuchStamina : Model -> Either Model Model
-tooMuchStamina model =
+fullStamina : Model -> Either Model Model
+fullStamina model =
     model.player.stamina
         |> (\(Player.Stamina stamina) ->
                 if stamina >= 100 then
@@ -146,32 +142,72 @@ view model =
         locationData =
             Dict.get playerCoordinate model.locationsData
     in
-    div []
-        [ Map.viewLocation playerCoordinate model.worldData
-        , viewMoveControls
-        , Map.viewMap playerCoordinate model.worldData
-        , viewResource locationData
-        , viewPlayerItems model.player
+    div
+        [ style "border" "1px solid black"
+        , style "display" "flex"
+        , style "margin" "1em"
         ]
+        [ div
+            sectionStyle
+            [ Map.viewLocation playerCoordinate model.worldData
+            , viewMoveControls
+            , Map.viewMap playerCoordinate model.worldData
+            , viewResources locationData
+            , viewPlayerItems model.player
+            ]
+        , div sectionStyle
+            [ div []
+                [ button
+                    [ style "display" "inline-block"
+                    , style "width" "10em"
+                    , onClick (SelectCraft Alchemy)
+                    ]
+                    [ text "Alchemy" ]
+                , button
+                    [ style "display" "inline-block"
+                    , style "width" "10em"
+                    , onClick (SelectCraft Smith)
+                    ]
+                    [ text "Smith" ]
+                , viewCraft model.craft
+                ]
+            ]
+        ]
+
+
+sectionStyle : List (Attribute msg)
+sectionStyle =
+    [ style "display" "flex"
+    , style "flex-direction" "column"
+    , style "flex-shrink" "0"
+    , style "border" "1px solid black"
+    , style "padding" "1em"
+    , style "margin" "1em"
+    , style "flex" "1"
+    ]
 
 
 viewPlayerItems : Player -> Html Msg
 viewPlayerItems player =
-    let
-        mapResource : String -> ( Resource, Int ) -> Html msg
-        mapResource name ( _, amount ) =
-            div [] [ text name, text (String.fromInt amount) ]
-    in
     div []
         [ h4 [] [ text "Items:" ]
         , text (Debug.toString player.skills)
         , text (Debug.toString player.stamina)
-        , div [] (Dict.values (Dict.map mapResource player.items))
+        , div [] (Dict.values (Dict.map viewResource player.items))
         ]
 
 
-viewResource : Maybe Map.LocationData -> Html Msg
-viewResource maybeLocationData =
+viewResource : String -> ( Resource, Int ) -> Html msg
+viewResource name ( _, amount ) =
+    div []
+        [ text name
+        , text (String.fromInt amount)
+        , div [] [ button [] [ text "+" ], button [] [ text "-" ] ]
+        ]
+
+
+viewResources : Maybe Map.LocationData -> Html Msg
+viewResources maybeLocationData =
     case maybeLocationData of
         Nothing ->
             text ""

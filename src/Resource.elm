@@ -1,6 +1,13 @@
 module Resource exposing
-    ( Resource
+    ( Effect
+    , Flower
+    , Intensity
+    , Mushroom
+    , Resource
     , Resources
+    , Rock
+    , Wood
+    , flowerEffect
     , flowers
     , genAmountChance
     , generate
@@ -65,6 +72,16 @@ rockResources =
         ]
 
 
+type Effect
+    = Healing
+    | Poison
+    | Strength
+
+
+type Intensity
+    = Intensity Int
+
+
 type Flower
     = Buttercup
     | Daffodil
@@ -82,6 +99,25 @@ flowers =
         , Flower CommonDaisy 0.13 10
         , Flower Rose 0.13 10
         ]
+
+
+flowerEffect : Flower -> ( Effect, Intensity )
+flowerEffect flower =
+    case flower of
+        Buttercup ->
+            ( Healing, Intensity 1 )
+
+        Daffodil ->
+            ( Poison, Intensity 1 )
+
+        Tulip ->
+            ( Strength, Intensity 1 )
+
+        CommonDaisy ->
+            ( Healing, Intensity 2 )
+
+        Rose ->
+            ( Strength, Intensity 2 )
 
 
 type Mushroom
