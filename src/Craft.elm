@@ -1,11 +1,8 @@
 module Craft exposing
     ( AlchemyModel
-    , AlchemyResource
-    , Craft(..)
     , Potion
-    , SelectedCraft
+    , SelectedCraft(..)
     , SmithModel
-    , SmithResource
     , addAlchemyResource
     , addToAlchemyCraft
     , addToSmithingCraft
@@ -18,12 +15,22 @@ module Craft exposing
     )
 
 import Html exposing (Html, button, div, text)
-import Resource exposing (Effect, Flower, Intensity, Mushroom, Resource, Rock, alchemyResource, flowerEffect, isSmithingResource)
-
-
-type Craft
-    = Alchemy
-    | Smith
+import Html.Events exposing (onClick)
+import Msg exposing (Craft(..), Msg)
+import Resource
+    exposing
+        ( AlchemyResource
+        , Effect
+        , Flower
+        , Intensity
+        , Mushroom
+        , Resource
+        , Rock
+        , SmithResource
+        , alchemyResource
+        , flowerEffect
+        , isSmithingResource
+        )
 
 
 type SelectedCraft
@@ -73,11 +80,6 @@ type alias CrafringModel x =
     { items : List x }
 
 
-type AlchemyResource
-    = FlowerResource Flower
-    | MushroomResource Mushroom
-
-
 type alias AlchemyModel =
     CrafringModel AlchemyResource
 
@@ -118,10 +120,6 @@ addSmithingResource model res =
     { model | items = res :: model.items }
 
 
-type SmithResource
-    = SmithResource Rock
-
-
 type alias SmithModel =
     CrafringModel SmithResource
 
@@ -148,17 +146,17 @@ viewCraft craft =
             div [] [ text "Nothing selected" ]
 
 
-viewCraftButton : SelectedCraft -> Resource -> Html msg
+viewCraftButton : SelectedCraft -> Resource -> Html Msg
 viewCraftButton craft resource =
     case craft of
         AlchemyCraft _ ->
             alchemyResource resource
-                |> Maybe.map (\r -> button [] [ text "+" ])
+                |> Maybe.map (\r -> button [ onClick (Msg.AddToAlchemyCraft r) ] [ text "+" ])
                 |> Maybe.withDefault (text "")
 
         SmithingCraft _ ->
             isSmithingResource resource
-                |> Maybe.map (\r -> button [] [ text "+" ])
+                |> Maybe.map (\r -> button [ onClick (Msg.AddToSmithingCraft r) ] [ text "+" ])
                 |> Maybe.withDefault (text "")
 
         NoCraftSelected ->

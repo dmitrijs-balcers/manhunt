@@ -3,10 +3,10 @@ module Player exposing
     , Position
     , Skills
     , Stamina(..)
+    , addItem
     , decreaseStamina
     , increaseStamina
     , initialState
-    , updateItems
     , updatePosition
     )
 
@@ -73,8 +73,8 @@ updatePosition direction player =
     { player | position = upd player.position direction }
 
 
-updateItems : Player -> Resource -> Player
-updateItems player resource =
+addItem : Player -> Resource -> Player
+addItem player resource =
     let
         update : Maybe ( Resource, Int ) -> Maybe ( Resource, Int )
         update c =

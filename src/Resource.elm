@@ -1,11 +1,13 @@
 module Resource exposing
-    ( Effect
+    ( AlchemyResource
+    , Effect
     , Flower
     , Intensity
     , Mushroom
     , Resource
     , Resources
     , Rock
+    , SmithResource
     , Wood
     , alchemyResource
     , flowerEffect
@@ -47,24 +49,33 @@ type Wood
     | Willow
 
 
-alchemyResource : Resource -> Maybe Resource
+type AlchemyResource
+    = FlowerResource Flower
+    | MushroomResource Mushroom
+
+
+type SmithResource
+    = RockResource Rock
+
+
+alchemyResource : Resource -> Maybe AlchemyResource
 alchemyResource resource =
     case resource of
-        Flower _ _ _ ->
-            Just resource
+        Flower f _ _ ->
+            Just (FlowerResource f)
 
-        Mushroom _ _ _ ->
-            Just resource
+        Mushroom m _ _ ->
+            Just (MushroomResource m)
 
         _ ->
             Nothing
 
 
-isSmithingResource : Resource -> Maybe Resource
+isSmithingResource : Resource -> Maybe SmithResource
 isSmithingResource resource =
     case resource of
-        Rock _ _ _ ->
-            Just resource
+        Rock r _ _ ->
+            Just (RockResource r)
 
         _ ->
             Nothing

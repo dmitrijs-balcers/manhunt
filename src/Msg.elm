@@ -1,7 +1,7 @@
-module Msg exposing (Msg(..))
+module Msg exposing (Craft(..), Msg(..))
 
-import Craft exposing (AlchemyResource, Craft, SmithResource)
 import Map exposing (Action)
+import Resource exposing (AlchemyResource, Rock, SmithResource)
 import Time
 
 
@@ -13,3 +13,8 @@ type Msg
     | SelectCraft Craft
     | AddToAlchemyCraft AlchemyResource
     | AddToSmithingCraft SmithResource
+
+
+type Craft
+    = Alchemy
+    | Smith

@@ -2,7 +2,15 @@ module Manhunt exposing (main)
 
 import Array exposing (Array)
 import Browser exposing (element)
-import Craft exposing (Craft(..), SelectedCraft, addToAlchemyCraft, addToSmithingCraft, selectCraft, viewCraft, viewCraftButton)
+import Craft
+    exposing
+        ( SelectedCraft(..)
+        , addToAlchemyCraft
+        , addToSmithingCraft
+        , selectCraft
+        , viewCraft
+        , viewCraftButton
+        )
 import Dict exposing (Dict)
 import Either exposing (Either)
 import Html exposing (Attribute, Html, a, button, div, h4, text)
@@ -10,12 +18,12 @@ import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Map exposing (Action(..), Direction(..))
 import Model exposing (LocationsData, Model, PlayerCoordinate, initialModel)
-import Msg exposing (Msg(..))
+import Msg exposing (Craft(..), Msg(..))
 import Platform.Sub exposing (Sub)
 import Player exposing (Player)
 import Port
 import Random exposing (Seed, initialSeed)
-import Resource exposing (Resource)
+import Resource exposing (Resource, alchemyResource, isSmithingResource)
 import Time
 import Update exposing (positionToTuple, refreshLocation)
 
@@ -39,34 +47,34 @@ update msg model =
     case msg of
         Keyboard keyAction ->
             case enoughStamina model of
-                Either.Left _ ->
+                Err _ ->
                     ( model, Cmd.none )
 
-                Either.Right _ ->
+                Ok m ->
                     case toDirection keyAction of
                         Direction direction ->
-                            Update.move model direction
+                            Update.move m direction
 
                         OtherKey other ->
                             case other of
                                 SpaceBar ->
-                                    Update.gather model
+                                    Update.gather m
 
                                 Other _ ->
-                                    ( model, Cmd.none )
+                                    ( m, Cmd.none )
 
         Perform action ->
             case enoughStamina model of
-                Either.Left _ ->
+                Err _ ->
                     ( model, Cmd.none )
 
-                Either.Right _ ->
+                Ok m ->
                     case action of
                         Map.Move direction ->
-                            Update.move model direction
+                            Update.move m direction
 
                         Map.Gather _ ->
-                            Update.gather model
+                            Update.gather m
 
         GenerateWorld randomNumber ->
             let
@@ -86,13 +94,13 @@ update msg model =
             , Cmd.none
             )
 
-        Tick posix ->
+        Tick _ ->
             case fullStamina model of
-                Either.Left _ ->
+                Err _ ->
                     ( model, Cmd.none )
 
-                Either.Right _ ->
-                    ( { model | player = Player.increaseStamina model.player }, Cmd.none )
+                Ok m ->
+                    ( { m | player = Player.increaseStamina model.player }, Cmd.none )
 
         SelectCraft craft ->
             ( { model | craft = selectCraft model.craft craft }, Cmd.none )
@@ -104,27 +112,27 @@ update msg model =
             ( { model | craft = addToSmithingCraft model.craft resource }, Cmd.none )
 
 
-enoughStamina : Model -> Either Model Model
+enoughStamina : Model -> Result String Model
 enoughStamina model =
     model.player.stamina
         |> (\(Player.Stamina stamina) ->
                 if stamina <= 0 then
-                    Either.Left model
+                    Err "stamina lower than 0"
 
                 else
-                    Either.Right model
+                    Ok model
            )
 
 
-fullStamina : Model -> Either Model Model
+fullStamina : Model -> Result String Model
 fullStamina model =
     model.player.stamina
         |> (\(Player.Stamina stamina) ->
                 if stamina >= 100 then
-                    Either.Left model
+                    Err "already full stamina"
 
                 else
-                    Either.Right model
+                    Ok model
            )
 
 
@@ -203,7 +211,7 @@ viewPlayerItems player craft =
         ]
 
 
-viewResource : SelectedCraft -> String -> ( Resource, Int ) -> Html msg
+viewResource : SelectedCraft -> String -> ( Resource, Int ) -> Html Msg
 viewResource craft name ( resource, amount ) =
     div []
         [ text name
